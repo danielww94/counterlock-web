@@ -501,6 +501,16 @@ const SITE = {
     .search input{width:100%}
   }
 
+  /* Keep the text cursor out of the menu and buttons. Browsers show a blinking
+     cursor in "caret browsing" mode (F7 in Edge/Chrome); it's only confusing on
+     controls, and on the rotated active-page diamond it even looks like a "/".
+     Page text stays selectable, and form fields keep their normal cursor. */
+  .side, button, .btn, .getbtn, .linkbtn, .navitem, .sortgroup{
+    -webkit-user-select:none;user-select:none;caret-color:transparent;
+  }
+  .navitem .tick{pointer-events:none}
+  .side .foot a{-webkit-user-select:text;user-select:text}
+
   /* Help, feedback & links (About page) */
   [hidden]{display:none !important}
   .help-card{border:1px solid var(--iris-deep);background:var(--ink-2);padding:20px 24px;max-width:680px;margin:6px 0 0}
@@ -1041,7 +1051,8 @@ function show(name){
     const on = b.dataset.nav===name;
     if(on) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current');
   });
-  if(location.hash.slice(1)!==name) history.replaceState(null,'','#'+name);
+  // Some sandboxed previews refuse address changes; the page works without it.
+  if(location.hash.slice(1)!==name){ try{ history.replaceState(null,'','#'+name); }catch(e){} }
   document.querySelector('main').scrollTo?.(0,0);
   window.scrollTo(0,0);
 }
@@ -1688,7 +1699,7 @@ function initLibrary() {
     const token_hash = p.get('token_hash');
     let type = p.get('type');
     if (!token_hash || !type) return;
-    history.replaceState(null, '', location.pathname + '#profiles');
+    try { history.replaceState(null, '', location.pathname + '#profiles'); } catch (e) { /* sandboxed preview */ }
     show('profiles');
     if (type === 'signup') type = 'email';
     if (!['email', 'recovery', 'email_change'].includes(type)) return;
