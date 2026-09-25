@@ -447,6 +447,13 @@ const SITE = {
     background:var(--ink-2);border:1px solid var(--line);color:var(--bone);font:inherit;font-size:15px;padding:9px 11px;
   }
   .dlg input:focus{outline:2px solid var(--iris);outline-offset:-1px;border-color:transparent}
+  .dlg select,.dlg textarea{
+    background:var(--ink-2);border:1px solid var(--line);color:var(--bone);font:inherit;font-size:15px;padding:9px 11px;
+  }
+  .dlg textarea{resize:vertical;min-height:72px}
+  .dlg select:focus,.dlg textarea:focus{outline:2px solid var(--iris);outline-offset:-1px;border-color:transparent}
+  .getbtn.quiet{border-color:transparent;color:var(--bone-dim);padding-left:6px;padding-right:6px}
+  .getbtn.quiet:hover{color:var(--bone);border-color:var(--line)}
   .dlg .hint{font-size:12px;opacity:.85}
   .dlg label.check{flex-direction:row;align-items:flex-start;gap:9px;font-size:13px;color:var(--bone)}
   .dlg label.check input{margin:3px 0 0;accent-color:var(--iris)}
@@ -658,7 +665,7 @@ const SITE = {
         <p class="board-msg" id="boardMsg" role="status"></p>
         <div class="grid" id="grid"></div>
         <div class="more-wrap"><button class="btn" id="moreBtn" type="button" hidden>Show more</button></div>
-        <p class="board-foot">Downloaded a profile? In Counterlock, open <b>Settings</b>, then <b>Load from file</b>. Made your own? Upload its <code>.xml</code> file here. Uploads follow the <a class="inline-link" href="#privacy">community rules</a>.</p>
+        <p class="board-foot">Downloaded a profile? In Counterlock, open <b>Settings</b>, then <b>Load from file</b>. Made your own? Upload its <code>.xml</code> file here, and use <b>Update</b> on its card when you improve it. Uploads follow the <a class="inline-link" href="#privacy">community rules</a>.</p>
       </div>
     </section>
 
@@ -670,7 +677,7 @@ const SITE = {
         <h2>What we keep</h2>
         <p>Browsing and downloading don't need an account, and nothing about you is saved when you do.</p>
         <p>With an account, we keep your username, email, password (stored as a secure hash nobody can read), the profiles you upload and the ratings you give. Your email is never shown to anyone. We only use it to sign you in and to send account emails, like confirmations, password resets and a note when you upload. We keep all this because you need it to have an account.</p>
-        <p>Failed sign-ins are counted for 15 minutes to stop password guessing.</p>
+        <p>Failed sign-ins are counted for 15 minutes to stop password guessing. If you report a profile, the admin sees the report and your username; reports are deleted after 90 days.</p>
 
         <h2>Where it's kept</h2>
         <p>Accounts, profiles and ratings are stored with Supabase on servers in the EU, and emails are sent through Resend. The site runs on GitHub Pages, which logs visitor IP addresses for security, like any web host.</p>
@@ -686,7 +693,10 @@ const SITE = {
         <ul>
           <li>You need to be 13 or older to make an account.</li>
           <li>Keep profiles about Deadlock.</li>
-          <li>No hate, harassment or personal info in names or descriptions.</li>
+          <li>No slurs, hate, harassment or personal info in usernames or profiles.</li>
+          <li>Profiles need at least 3 filled-in matchups.</li>
+          <li>You can share one new profile an hour, and update each profile every 10 minutes.</li>
+          <li>See something that breaks these rules? Use Report on the profile.</li>
           <li>Only upload your own work, or work you're allowed to share.</li>
           <li>Anything that breaks the rules can be removed without warning.</li>
         </ul>
@@ -808,6 +818,30 @@ const SITE = {
 
     <div class="dlg-actions"><button type="button" class="btn" data-close>Close</button></div>
   </div>
+</dialog>
+
+<dialog class="dlg" id="dlgReport" aria-labelledby="dlgReportT">
+  <div class="strip"></div>
+  <form class="dlg-form" id="formReport" novalidate>
+    <h2 id="dlgReportT">Report profile</h2>
+    <p>Reporting <b id="reportName"></b>. Only the admin sees reports; the author isn't told who reported.</p>
+    <label>What's wrong?
+      <select name="reason">
+        <option value="">Pick a reason</option>
+        <option value="offensive">Offensive or hateful</option>
+        <option value="spam">Spam or junk</option>
+        <option value="wrong">Wrong or misleading</option>
+        <option value="copied">Copied from someone else</option>
+        <option value="other">Something else</option>
+      </select>
+    </label>
+    <label>Details (optional)<textarea name="details" rows="3" maxlength="500"></textarea><span class="hint">Up to 500 characters, like which matchup or what's wrong.</span></label>
+    <p class="dlg-msg" role="alert"></p>
+    <div class="dlg-actions">
+      <button type="submit" class="btn primary">Send report</button>
+      <button type="button" class="btn" data-close>Cancel</button>
+    </div>
+  </form>
 </dialog>
 
 <dialog class="dlg" id="dlgConfirm" aria-labelledby="confirmTitle" aria-describedby="confirmText">
@@ -1127,7 +1161,7 @@ function initLibrary() {
   const grid = $('grid'), moreBtn = $('moreBtn'), boardMsg = $('boardMsg'), searchBox = $('searchBox');
   const BASE = String(LIB.url).replace(/\/+$/, '');
   const PAGE = 24;
-  const COLS = 'id,name,description,patch,author_name,owner_id,hero_count,matchup_count,tips_heroes,downloads,rating_avg,rating_count,created_at,file_path';
+  const COLS = 'id,name,description,patch,author_name,owner_id,hero_count,matchup_count,tips_heroes,downloads,rating_avg,rating_count,created_at,updated_at,version,file_path';
   const S = { sort: 'popular', q: '', page: 0, rows: [], done: false, req: 0,
               user: null, account: null, mine: new Map(), counted: new Set() };
 
@@ -1218,7 +1252,7 @@ function initLibrary() {
       <div class="strip"></div>
       <div class="body">
         <div class="name">${esc(r.name)}</div>
-        <p class="by">by <b>${esc(r.author_name)}</b>${own ? ' <span class="you">you</span>' : ''} \u00b7 ${esc(day(r.created_at))}</p>
+        <p class="by">by <b>${esc(r.author_name)}</b>${own ? ' <span class="you">you</span>' : ''} \u00b7 ${esc(day(r.created_at))}${r.updated_at ? ' \u00b7 updated ' + esc(day(r.updated_at)) : ''}</p>
         ${r.description ? `<p class="desc">${esc(r.description)}</p>` : '<p class="desc"></p>'}
         <div class="tags">
           ${r.patch ? `<span class="tag patch">Patch ${esc(r.patch)}</span>` : ''}
@@ -1231,6 +1265,8 @@ function initLibrary() {
       <div class="foot" style="border-top:0;padding-top:0">
         <span class="dls">${fmt(Number(r.downloads) || 0)} download${Number(r.downloads) === 1 ? '' : 's'}</span>
         <span class="acts">
+          ${!own && !(S.account && S.account.is_admin) ? `<button class="getbtn quiet" data-rep="${esc(r.id)}" type="button" title="Report this profile to the admin">Report</button>` : ''}
+          ${own ? `<button class="getbtn" data-upd="${esc(r.id)}" type="button" title="Replace with a new version of the file">Update</button>` : ''}
           ${canDelete ? `<button class="getbtn del" data-del="${esc(r.id)}" type="button">Delete</button>` : ''}
           <button class="getbtn" data-get="${esc(r.id)}" type="button">Download</button>
         </span>
@@ -1317,6 +1353,10 @@ function initLibrary() {
     if (st) { if (!st.disabled) rate(st.dataset.id, Number(st.dataset.star)); return; }
     const g = e.target.closest('[data-get]');
     if (g) { download(g.dataset.get, g); return; }
+    const u = e.target.closest('[data-upd]');
+    if (u) { startUpdate(u.dataset.upd); return; }
+    const rp = e.target.closest('[data-rep]');
+    if (rp) { startReport(rp.dataset.rep); return; }
     const d = e.target.closest('[data-del]');
     if (d) removeProfile(d.dataset.del);
   });
@@ -1353,25 +1393,45 @@ function initLibrary() {
     const nameEl = meta ? Array.from(meta.children).find(c => c.nodeName === 'name') : null;
     const name = nameEl ? nameEl.textContent.replace(/\s+/g, ' ').trim() : '';
     if (!name) return { ok: false, msg: 'The profile has no name. Give it one in the Profile editor first.' };
+    if (name.length < 3) return { ok: false, msg: `The profile name "${name}" is too short. Use at least 3 characters so people can tell profiles apart.` };
+    // Same rule as the server: only matchups with content count, each enemy once.
     const enemies = Array.from(root.children).find(c => c.nodeName === 'enemies');
-    const matchups = enemies ? Array.from(enemies.children).filter(c => c.nodeName === 'enemy').length : 0;
-    if (!matchups) return { ok: false, msg: 'The profile has no matchups yet. Add at least one enemy first.' };
+    const filled = new Set();
+    (enemies ? Array.from(enemies.children).filter(c => c.nodeName === 'enemy') : []).forEach((e, i) => {
+      const named = Array.from(e.getElementsByTagName('item')).some(it => (it.getAttribute('name') || '').trim());
+      if (named || e.textContent.trim()) filled.add((e.getAttribute('id') || '').trim() || '#' + i);
+    });
+    const matchups = filled.size;
+    if (matchups < 3) {
+      return { ok: false, msg: `The profile has ${matchups} matchup${matchups === 1 ? '' : 's'} with content. Shared profiles need at least 3, so they're useful to others. Fill in more enemies in the Profile editor and try again.` };
+    }
     return { ok: true, name: name.slice(0, 60), matchups };
   }
 
+  let updatingId = null;       // set while picking a file for Update
   $('uploadBtn').addEventListener('click', () => {
     if (!S.user) { openDialog('dlgSignIn', 'Sign in to share a profile.'); return; }
+    updatingId = null;
     $('fileInput').click();
   });
+  function startUpdate(id) {
+    if (!S.user) { openDialog('dlgSignIn', 'Sign in to update your profiles.'); return; }
+    updatingId = id;
+    $('fileInput').click();
+  }
   $('fileInput').addEventListener('change', async () => {
     const input = $('fileInput');
     const file = input.files && input.files[0];
     input.value = '';
     if (!file) return;
-    if (file.size > 512 * 1024) { toast("That file is over 512 KB. Profiles are small text files, so this probably isn't one.", 6000); return; }
+    const target = updatingId ? S.rows.find(x => x.id === updatingId) : null;
+    updatingId = null;
+    const failTitle = target ? 'Update not accepted' : 'Upload not accepted';
+    if (file.size > 512 * 1024) { infoBox(failTitle, "That file is over 512 KB. Profiles are small text files, so this probably isn't one."); return; }
     const text = await file.text();
     const check = precheck(text);
-    if (!check.ok) { toast(check.msg, 7000); return; }
+    if (!check.ok) { infoBox(failTitle, check.msg); return; }
+    if (target) { await sendUpdate(target, text, check); return; }
     const ok = await confirmBox({
       title: 'Share this profile?',
       text: `"${check.name}" (${check.matchups} matchup${check.matchups === 1 ? '' : 's'}) goes into the public library under your username, where anyone can download it.`,
@@ -1382,10 +1442,48 @@ function initLibrary() {
     busy(btn, true, 'Uploading\u2026');
     const res = await callApi({ action: 'upload', xml: text });
     busy(btn, false);
-    if (res.error) { toast(res.error, 7000); return; }
+    if (res.error) { infoBox(failTitle, res.error); return; }
     toast(`"${check.name}" is live.` + (res.data && res.data.emailed ? ' A confirmation email is on its way.' : ''), 6000);
     setSort('new');
   });
+
+  // ---------- Report ----------
+  let reportingId = null;
+  function startReport(id) {
+    const r = S.rows.find(x => x.id === id);
+    if (!r) return;
+    if (!S.user) { openDialog('dlgSignIn', 'Sign in to report a profile.'); return; }
+    reportingId = id;
+    openDialog('dlgReport');
+    $('reportName').textContent = `"${r.name}" by ${r.author_name}`;
+    $('formReport').elements.reason.focus();
+  }
+  $('formReport').addEventListener('submit', async e => {
+    e.preventDefault();
+    const f = e.target, btn = f.querySelector('[type=submit]');
+    const reason = f.elements.reason.value, details = f.elements.details.value.trim();
+    if (!reason) { setMsg(f, 'Pick a reason first.', 'err'); return; }
+    busy(btn, true, 'Sending\u2026');
+    const res = await callApi({ action: 'report', id: reportingId, reason, details });
+    busy(btn, false);
+    if (res.error) { setMsg(f, res.error, 'err'); return; }
+    hideDlg($('dlgReport'));
+    toast('Thanks. Your report was sent to the admin.', 5000);
+  });
+
+  async function sendUpdate(target, text, check) {
+    const ok = await confirmBox({
+      title: 'Update this profile?',
+      text: `"${target.name}" will be replaced by "${check.name}" (${check.matchups} matchups). Its ratings and downloads are kept. You can update each profile every 10 minutes.`,
+      confirm: 'Update',
+    });
+    if (!ok) return;
+    toast('Updating\u2026', 20000);
+    const res = await callApi({ action: 'update', id: target.id, xml: text });
+    if (res.error) { $('toast').classList.remove('show'); infoBox('Update not accepted', res.error); return; }
+    if (res.data && res.data.profile) replaceRow(res.data.profile);
+    toast(`"${check.name}" is updated.` + (res.data && res.data.emailed ? ' A confirmation email is on its way.' : ''), 6000);
+  }
 
   // ---------- Account bar ----------
   function renderAcct() {
@@ -1508,6 +1606,7 @@ function initLibrary() {
     const why = {
       taken: 'That username is taken. Names that differ only by capitals or . _ - count as the same name.',
       reserved: 'That name is reserved. Pick another.',
+      blocked: "That username contains a word that isn't allowed. Pick another.",
       held: 'That name belonged to a deleted account and stays reserved for 6 months after deletion. Pick another.',
       invalid: 'Usernames are 3 to 20 characters: letters and numbers, with . _ or - allowed in between.',
     }[st.data];
