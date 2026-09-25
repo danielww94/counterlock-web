@@ -27,7 +27,6 @@ const SUPABASE = {
 const SITE = {
   profilesBoard: 'live', // 'live': library shows once SUPABASE is filled in. 'coming-soon': hide it.
   contactEmail:  'contact@getcounterlock.com',     // shown on the Privacy page, like 'contact@yourdomain.com'
-  owner:         'Daniel Andersson',     // who runs the site, for the Privacy page, like 'Daniel W.'
 };
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -668,36 +667,30 @@ const SITE = {
       <h1 class="title" id="t-privacy">Privacy &amp; rules</h1>
       <p class="lede">No ads, no tracking, and you can delete everything yourself.</p>
       <div class="privacy">
-        <h2>Who runs this</h2>
-        <p>Counterlock is a free, fan-made tool run by <span id="privOwner">one developer</span> in Sweden. For questions or requests about your data, <span id="privContact">send a message through the Support the developer page</span>.</p>
-
-        <h2>What's stored</h2>
-        <p>Browsing and downloading profiles needs no account, and nothing about you is saved when you do. Download counts are just numbers.</p>
-        <p>If you create an account, Counterlock stores your username, your email address, your password (as a secure one-way hash that nobody can read), the profiles you upload and the ratings you give. Your email is never shown to anyone. It's used to sign you in and for account emails: confirming your address, password resets, and a short note each time you upload a profile.</p>
-        <p>To stop password guessing, failed sign-ins are counted per account for 15 minutes. Those counters are deleted within a day.</p>
-        <p>This is what it takes to run the account and library you sign up for, which is the legal basis for keeping it.</p>
+        <h2>What we keep</h2>
+        <p>Browsing and downloading don't need an account, and nothing about you is saved when you do.</p>
+        <p>With an account, we keep your username, email, password (stored as a secure hash nobody can read), the profiles you upload and the ratings you give. Your email is never shown to anyone. We only use it to sign you in and to send account emails, like confirmations, password resets and a note when you upload. We keep all this because you need it to have an account.</p>
+        <p>Failed sign-ins are counted for 15 minutes to stop password guessing.</p>
 
         <h2>Where it's kept</h2>
-        <p>Accounts, profiles and ratings are stored with Supabase on servers in the EU. Account emails are sent through Resend. The website is hosted on GitHub Pages, which, like any web host, logs visitors' IP addresses for security.</p>
-
-        <h2>Cookies</h2>
-        <p>None. When you sign in, your browser keeps a login token so you stay signed in. Signing out removes it.</p>
+        <p>Accounts, profiles and ratings are stored with Supabase on servers in the EU, and emails are sent through Resend. The site runs on GitHub Pages, which logs visitor IP addresses for security, like any web host.</p>
+        <p>No cookies. Signing in saves a login token in your browser, and signing out removes it.</p>
 
         <h2>How long</h2>
-        <p>Until you delete your account (Account, then Delete account). That removes your email, profiles and ratings right away. Your username stays reserved for 6 months afterwards so nobody can pose as you, then anyone can take it. Signups that are never confirmed are removed after 3 days.</p>
+        <p>Until you delete your account (Account, then Delete account). Everything is removed right away, except your username: it stays reserved for 6 months so nobody can pretend to be you. Unconfirmed signups are removed after 3 days, and sign-in counters within a day.</p>
 
         <h2>Your rights</h2>
-        <p>You can see, correct or delete your data at any time, mostly from your account settings. For anything else, use the contact above. If you think your data is mishandled, you can also complain to IMY, the Swedish Authority for Privacy Protection.</p>
+        <p>You can see, fix or delete your data at any time, mostly from your account settings. For anything else, <span id="privContact">send a message through the Support the developer page</span>. You can also complain to a data protection authority.</p>
 
-        <h2>Community rules</h2>
+        <h2>Rules</h2>
         <ul>
-          <li>You need to be 13 or older to create an account.</li>
-          <li>Keep profiles about Deadlock counters and tips.</li>
-          <li>No hate, harassment or personal information in usernames, profile names or descriptions.</li>
-          <li>Only upload profiles you made or have permission to share.</li>
-          <li>Profiles or accounts that break these rules can be removed without warning.</li>
+          <li>You need to be 13 or older to make an account.</li>
+          <li>Keep profiles about Deadlock.</li>
+          <li>No hate, harassment or personal info in names or descriptions.</li>
+          <li>Only upload your own work, or work you're allowed to share.</li>
+          <li>Anything that breaks the rules can be removed without warning.</li>
         </ul>
-        <p>Counterlock isn't affiliated with Valve. Deadlock is a trademark of Valve Corporation.</p>
+        <p>Counterlock is a fan project and isn't affiliated with Valve. Deadlock is a trademark of Valve Corporation.</p>
       </div>
     </section>
 
@@ -1054,8 +1047,6 @@ function infoBox(title, text) { return confirmBox({ title, text, confirm: 'OK', 
 /* ---------------- Privacy page: contact details from SITE settings ---------------- */
 (function fillPrivacy() {
   const cfg = (typeof SITE !== 'undefined' && SITE) || {};
-  const who = $('privOwner');
-  if (who && cfg.owner) who.textContent = String(cfg.owner);
   const line = $('privContact');
   if (line) {
     if (cfg.contactEmail) {
