@@ -674,6 +674,7 @@ const SITE = {
         <h2>What's stored</h2>
         <p>Browsing and downloading profiles needs no account, and nothing about you is saved when you do. Download counts are just numbers.</p>
         <p>If you create an account, Counterlock stores your username, your email address, your password (as a secure one-way hash that nobody can read), the profiles you upload and the ratings you give. Your email is never shown to anyone. It's used to sign you in and for account emails: confirming your address, password resets, and a short note each time you upload a profile.</p>
+        <p>To stop password guessing, failed sign-ins are counted per account for 15 minutes. Those counters are deleted within a day.</p>
         <p>This is what it takes to run the account and library you sign up for, which is the legal basis for keeping it.</p>
 
         <h2>Where it's kept</h2>
@@ -708,7 +709,7 @@ const SITE = {
   <div class="strip"></div>
   <form class="dlg-form" id="formSignIn" novalidate>
     <h2 id="dlgSignInT">Sign in</h2>
-    <label>Email<input type="email" name="email" autocomplete="email" required /></label>
+    <label>Email or username<input type="text" name="login" autocomplete="username" autocapitalize="off" spellcheck="false" required /><span class="hint">You can use either one.</span></label>
     <label>Password<input type="password" name="password" autocomplete="current-password" required /></label>
     <p class="dlg-msg" role="alert"></p>
     <button type="button" class="linkbtn dlg-extra" id="resendBtn" hidden>Send the confirmation email again</button>
@@ -727,7 +728,7 @@ const SITE = {
     <p>You only need one to upload or rate. Browsing and downloading are open to everyone.</p>
     <label>Username
       <input type="text" name="username" autocomplete="username" maxlength="20" spellcheck="false" autocapitalize="off" required />
-      <span class="hint">3 to 20 letters, numbers, _ or -. Shown on your profiles. It can't be changed later.</span>
+      <span class="hint">3 to 20 characters: letters and numbers, with . _ or - allowed in between. Shown on your profiles, and it can't be changed later.</span>
     </label>
     <label>Email
       <input type="email" name="email" autocomplete="email" required />
@@ -748,6 +749,7 @@ const SITE = {
   <div class="dlg-body dlg-done" id="signUpDone" hidden>
     <h2>Check your email</h2>
     <p>We sent a confirmation link to <b id="signUpEmail"></b>. Open it to activate your account. It can take a minute, and it may land in spam.</p>
+    <p>Started a signup with this email before but never confirmed it? The link finishes that first signup, with the username you picked then.</p>
     <div class="dlg-actions"><button type="button" class="btn primary" data-close>OK</button></div>
   </div>
 </dialog>
@@ -1460,9 +1462,25 @@ function initLibrary() {
   $('formSignIn').addEventListener('submit', async e => {
     e.preventDefault();
     const f = e.target, btn = f.querySelector('[type=submit]');
-    const email = f.elements.email.value.trim(), password = f.elements.password.value;
-    if (!email || !password) { setMsg(f, 'Enter your email and password.', 'err'); return; }
+    const login = f.elements.login.value.trim(), password = f.elements.password.value;
+    if (!login || !password) { setMsg(f, 'Enter your email or username, and your password.', 'err'); return; }
     busy(btn, true, 'Signing in\u2026');
+    let email = login;
+    if (!login.includes('@')) {
+      // A username: the database swaps it for the account's email, but only
+      // when the password is right (so emails stay private).
+      const r = await sb.rpc('login_email', { p_login: login, p_password: password });
+      if (r.error) {
+        busy(btn, false);
+        const rm = String(r.error.message || '');
+        if (/LOGIN_LOCKED/.test(rm)) setMsg(f, 'Too many wrong passwords for this username. Wait 15 minutes, or sign in with your email address.', 'err');
+        else if (/LOGIN_USE_EMAIL/.test(rm)) setMsg(f, 'Please sign in with your email address for this account.', 'err');
+        else setMsg(f, "Couldn't sign you in right now. Please try again.", 'err');
+        return;
+      }
+      if (!r.data) { busy(btn, false); setMsg(f, 'Wrong email, username or password.', 'err'); return; }
+      email = r.data;
+    }
     const { error } = await sb.auth.signInWithPassword({ email, password });
     busy(btn, false);
     if (!error) { hideDlg($('dlgSignIn')); toast('Signed in.'); return; }
@@ -1477,7 +1495,7 @@ function initLibrary() {
         busy(again, false);
         setMsg(f, r.error ? "Couldn't send it right now. Wait a minute and try again." : 'Sent. Check your inbox.', r.error ? 'err' : 'ok');
       };
-    } else if (/invalid/i.test(m)) setMsg(f, 'Wrong email or password.', 'err');
+    } else if (/invalid/i.test(m)) setMsg(f, 'Wrong email, username or password.', 'err');
     else if (error.status === 429) setMsg(f, 'Too many attempts. Wait a minute and try again.', 'err');
     else setMsg(f, m || 'Something went wrong. Please try again.', 'err');
   });
@@ -1489,7 +1507,7 @@ function initLibrary() {
     const username = f.elements.username.value.trim();
     const email = f.elements.email.value.trim();
     const password = f.elements.password.value;
-    if (!/^[A-Za-z0-9_-]{3,20}$/.test(username)) { setMsg(f, 'Usernames are 3 to 20 letters, numbers, _ or -.', 'err'); return; }
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]{1,18}[A-Za-z0-9]$/.test(username)) { setMsg(f, 'Usernames are 3 to 20 characters: letters and numbers, with . _ or - allowed in between.', 'err'); return; }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setMsg(f, 'Enter a valid email address.', 'err'); return; }
     if (password.length < 8) { setMsg(f, 'Use at least 8 characters for your password.', 'err'); return; }
     if (!f.elements.agree.checked) { setMsg(f, "Please confirm you're 13 or older and accept the rules.", 'err'); return; }
@@ -1497,19 +1515,26 @@ function initLibrary() {
     const st = await sb.rpc('username_status', { p_name: username });
     if (st.error) { busy(btn, false); setMsg(f, "Couldn't check the username. Please try again.", 'err'); return; }
     const why = {
-      taken: 'That username is taken.',
+      taken: 'That username is taken. Names that differ only by capitals or . _ - count as the same name.',
       reserved: 'That name is reserved. Pick another.',
       held: 'That name belonged to a deleted account and stays reserved for 6 months after deletion. Pick another.',
-      invalid: 'Usernames are 3 to 20 letters, numbers, _ or -.',
+      invalid: 'Usernames are 3 to 20 characters: letters and numbers, with . _ or - allowed in between.',
     }[st.data];
     if (why) { busy(btn, false); setMsg(f, why, 'err'); return; }
-    const { error } = await sb.auth.signUp({ email, password, options: { data: { username } } });
+    const { data, error } = await sb.auth.signUp({ email, password, options: { data: { username } } });
     busy(btn, false);
     if (error) {
       const m = String(error.message || '');
       if (/database error/i.test(m)) setMsg(f, 'That username was just taken. Pick another.', 'err');
       else if (error.status === 429) setMsg(f, 'Too many signups right now. Wait a few minutes and try again.', 'err');
       else setMsg(f, m || 'Something went wrong. Please try again.', 'err');
+      return;
+    }
+    // Supabase doesn't say "already registered" (it hides who has an account);
+    // for a confirmed account it answers with an empty identities list.
+    const ids = data && data.user ? data.user.identities : undefined;
+    if (Array.isArray(ids) && ids.length === 0) {
+      setMsg(f, 'An account with this email already exists. Sign in instead, or use "Forgot your password?" in the sign-in window.', 'err');
       return;
     }
     f.hidden = true;
