@@ -5,25 +5,29 @@
 <!-- =====================================================================
      SITE SETTINGS  ·  the only part you normally need to edit
      ---------------------------------------------------------------------
-     First time: replace YOUR-USERNAME below with your GitHub username.
+     New Counterlock version: nothing to change here. Publish the GitHub
+     Release (DEVELOPMENT.md, section 6.5) and the site picks up the new
+     version number, file sizes and download links by itself.
 
-     Shipping a new version of Counterlock:
-       1. On GitHub, create a new Release and attach your two builds,
-          named exactly  Counterlock.exe  (Windows)  and  Counterlock  (Linux).
-       2. That's it. The site reads the version number and file sizes from
-          your latest Release by itself, and the download buttons always
-          fetch the newest files. The version below is only a fallback.
+     SUPABASE switches on the Counter Profiles library. Both values are
+     meant to be public: the database rules do the protecting. NEVER put
+     a secret key (sb_secret_...) here. The page refuses to run with one.
      ===================================================================== -->
 <script>
 const RELEASE = {
-  github:      'danielww94/counterlock-web', // your GitHub username / repository name
-  version:     '0.30',                      // fallback, used if GitHub can't be reached
-  windowsFile: 'Counterlock.exe',           // file names in every Release, keep them the same
+  github:      'danielww94/counterlock-web', // GitHub username / repository with the Releases
+  version:     '0.30',                       // fallback, used if GitHub can't be reached
+  windowsFile: 'Counterlock.exe',            // file names in every Release, keep them the same
   linuxFile:   'Counterlock',
 };
+const SUPABASE = {
+  url:            'https://wnfffgplxatkxehxktzj.supabase.co',  // Project URL, like 'https://abcdefghijklmnop.supabase.co'
+  publishableKey: 'sb_publishable_EzT82Bopn0zeVmfJlnxWng_BmmVPBCl',  // Publishable key, starts with 'sb_publishable_'
+};
 const SITE = {
-  profilesBoard: 'coming-soon',  // 'coming-soon' until the profile database is set up (Part 2)
-                                 // 'preview' shows the board with sample data
+  profilesBoard: 'live', // 'live': library shows once SUPABASE is filled in. 'coming-soon': hide it.
+  contactEmail:  'contact@getcounterlock.com',     // shown on the Privacy page, like 'contact@yourdomain.com'
+  owner:         'Daniel Andersson',     // who runs the site, for the Privacy page, like 'Daniel W.'
 };
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -318,12 +322,6 @@ const SITE = {
   .notice.err{color:#e08a7a}
   .notice.ok{color:var(--iris)}
 
-  .demo-banner{
-    border:1px dashed var(--line);
-    padding:11px 15px;margin:0 0 22px;font-size:13px;color:var(--bone-dim);max-width:70ch;
-  }
-  .demo-banner b{color:var(--bone);font-weight:500}
-
   /* App screenshot frame (About) */
   .shot{border:1px solid var(--line);background:#0d0a19;padding:8px;max-width:760px;margin:8px 0 2px;line-height:0}
   .shot img{width:100%;height:auto;display:block;border:1px solid var(--line-soft)}
@@ -370,6 +368,131 @@ const SITE = {
   .verify{font-size:12.5px;color:var(--bone-dim);margin:2px 0 0}
   .os-panel[hidden]{display:none}
 
+  /* ---------------- Counter Profiles: live library ---------------- */
+  .acct-bar{
+    display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;
+    border:1px solid var(--line);background:var(--ink-2);
+    padding:11px 16px;margin:0 0 20px;font-size:14px;color:var(--bone-dim);
+  }
+  .acct-bar b{color:var(--bone);font-weight:600}
+  .acct-btns{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
+  .chip-admin{
+    font-family:var(--cond);text-transform:uppercase;letter-spacing:.06em;font-size:11px;
+    color:var(--ink);background:var(--orchid);padding:1px 7px;margin-left:5px;vertical-align:1px;
+  }
+  .linkbtn{
+    background:none;border:0;padding:0;cursor:pointer;font:inherit;font-size:14px;
+    color:var(--iris);border-bottom:1px solid rgba(198,162,251,0.4);
+  }
+  .linkbtn:hover{border-bottom-color:var(--iris)}
+  .linkbtn:focus-visible{outline:2px solid var(--iris);outline-offset:3px}
+  .linkbtn[disabled]{opacity:.6;cursor:wait}
+
+  .btn{
+    font-family:var(--cond);text-transform:uppercase;letter-spacing:.04em;font-size:13px;
+    color:var(--bone);background:none;border:1px solid var(--line);padding:8px 15px;cursor:pointer;
+    transition:border-color .15s ease,background .15s ease,color .15s ease;
+  }
+  .btn:hover{border-color:var(--iris);color:var(--iris)}
+  .btn.primary{background:var(--iris);border-color:var(--iris);color:var(--ink)}
+  .btn.primary:hover{background:#d4b8fc;border-color:#d4b8fc;color:var(--ink)}
+  .btn.danger{border-color:rgba(224,138,122,0.55);color:#f0a99b}
+  .btn.danger:hover{background:rgba(224,138,122,0.12);border-color:#e08a7a;color:#f6c0b5}
+  .btn:focus-visible{outline:2px solid var(--iris);outline-offset:2px}
+  .btn[disabled]{opacity:.6;cursor:wait}
+
+  .board-top .tools{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+  .search input{
+    background:var(--ink-2);border:1px solid var(--line);color:var(--bone);
+    font:inherit;font-size:14px;padding:8px 12px;width:250px;max-width:100%;
+  }
+  .search input::placeholder{color:var(--bone-dim);opacity:.8}
+  .search input:focus{outline:2px solid var(--iris);outline-offset:-1px;border-color:transparent}
+  .upload[disabled]{opacity:.6;cursor:wait}
+  .board-msg{font-size:14px;color:var(--bone-dim);margin:0 0 16px}
+  .board-msg:empty{display:none}
+  .board-msg.err{color:#e08a7a}
+  .more-wrap{text-align:center;margin:22px 0 0}
+  .board-foot{font-size:13.5px;color:var(--bone-dim);margin:28px 0 0;max-width:80ch}
+  .board-foot b{color:var(--bone);font-weight:500}
+  .card .you{
+    font-family:var(--cond);text-transform:uppercase;font-size:10.5px;letter-spacing:.06em;
+    color:var(--orchid);border:1px solid rgba(210,136,222,0.4);padding:0 5px;margin-left:3px;
+  }
+  .acts{display:flex;gap:8px}
+  .getbtn.del{color:#f0a99b;border-color:rgba(224,138,122,0.4)}
+  .getbtn.del:hover{color:#f6c0b5;border-color:#e08a7a}
+  .getbtn[disabled]{opacity:.6;cursor:wait}
+  .stars.mine svg.on{color:var(--iris)}
+  .stars.own button{cursor:default}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .inline-link{color:var(--iris);text-decoration:none;border-bottom:1px solid rgba(198,162,251,0.4)}
+  .inline-link:hover{border-bottom-color:var(--iris)}
+
+  /* Dialogs: sign in, create account, account settings, confirmations */
+  .dlg{
+    border:1px solid var(--line);background:#130d22;color:var(--bone);padding:0;
+    width:min(440px,calc(100% - 28px));max-height:calc(100% - 28px);overflow:auto;
+    box-shadow:0 24px 60px rgba(0,0,0,.55);
+  }
+  .dlg::backdrop{background:rgba(6,4,12,0.72)}
+  .dlg .strip{height:3px;background:linear-gradient(90deg,var(--iris),transparent 85%)}
+  .dlg-form,.dlg-body{padding:22px 24px 20px;display:flex;flex-direction:column;gap:12px}
+  .dlg-sub{display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--line-soft);padding-top:14px;margin-top:2px}
+  .dlg h2{font-family:var(--cond);text-transform:uppercase;letter-spacing:.03em;font-weight:600;font-size:22px;margin:0;line-height:1.2}
+  .dlg h3{font-family:var(--cond);text-transform:uppercase;letter-spacing:.05em;font-weight:600;font-size:14px;color:var(--orchid);margin:0}
+  .dlg p{margin:0;font-size:14px;color:var(--bone-dim)}
+  .dlg p b{color:var(--bone);font-weight:500}
+  .dlg label{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--bone-dim)}
+  .dlg input[type=text],.dlg input[type=email],.dlg input[type=password]{
+    background:var(--ink-2);border:1px solid var(--line);color:var(--bone);font:inherit;font-size:15px;padding:9px 11px;
+  }
+  .dlg input:focus{outline:2px solid var(--iris);outline-offset:-1px;border-color:transparent}
+  .dlg .hint{font-size:12px;opacity:.85}
+  .dlg label.check{flex-direction:row;align-items:flex-start;gap:9px;font-size:13px;color:var(--bone)}
+  .dlg label.check input{margin:3px 0 0;accent-color:var(--iris)}
+  .dlg a{color:var(--iris);text-decoration:none;border-bottom:1px solid rgba(198,162,251,0.4)}
+  .dlg a:hover{border-bottom-color:var(--iris)}
+  .dlg .linkbtn{align-self:flex-start;font-size:13px}
+  .dlg-msg{font-size:13.5px;margin:0}
+  .dlg-msg:empty{display:none}
+  .dlg-msg.err{color:#f0a99b}
+  .dlg-msg.ok{color:var(--iris)}
+  .dlg-msg.info{color:var(--bone)}
+  .dlg-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:4px}
+  .dlg-links{font-size:13px}
+  .dlg .who{font-size:14px}
+  .dlg .who b{font-size:16px}
+  .dlg [hidden]{display:none}
+
+  .toast{
+    position:fixed;left:50%;bottom:22px;transform:translate(-50%,8px);z-index:60;
+    background:#1b1330;border:1px solid var(--iris-deep);color:var(--bone);font-size:14px;
+    padding:12px 18px;max-width:min(560px,calc(100% - 28px));box-shadow:0 12px 30px rgba(0,0,0,.45);
+    opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease;
+  }
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+
+  /* Privacy & rules page */
+  .privacy{max-width:70ch}
+  .privacy h2{
+    font-family:var(--cond);text-transform:uppercase;letter-spacing:.04em;font-weight:600;
+    font-size:17px;color:var(--orchid);margin:28px 0 8px;
+  }
+  .privacy p,.privacy li{font-size:15px;color:var(--bone)}
+  .privacy p{margin:0 0 10px}
+  .privacy ul{margin:0 0 10px;padding-left:20px}
+  .privacy li{margin:0 0 6px}
+  .privacy a{color:var(--iris);text-decoration:none;border-bottom:1px solid rgba(198,162,251,0.4)}
+  .privacy a:hover{border-bottom-color:var(--iris)}
+  .side .foot .privlink{display:inline-block;margin-top:10px;font-size:12px}
+
+  @media (max-width:820px){
+    .board-top .tools{width:100%}
+    .search{flex:1;min-width:0}
+    .search input{width:100%}
+  }
+
   /* ---------------- Responsive ---------------- */
   @media (max-width:820px){
     .shell{grid-template-columns:1fr}
@@ -403,13 +526,14 @@ const SITE = {
     </nav>
 
     <div class="foot">
-      <div>Counterlock <span class="v" id="ver">v0.29</span></div>
+      <div>Counterlock <span class="v" id="ver">v0.30</span></div>
       <div>For Deadlock. Windows &amp; Linux.</div>
       <a class="support" href="https://ko-fi.com/counterlock" target="_blank" rel="noopener noreferrer" aria-label="Support the developer on Ko-fi (opens in a new tab)">
         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21s-6.9-4.35-9.5-8.28C.62 9.8 1.5 6.2 4.5 5.08c2.05-.77 4.28-.03 5.5 1.72L12 8.6l2-1.8c1.22-1.75 3.45-2.49 5.5-1.72 3 1.12 3.88 4.72 2 7.64C18.9 16.65 12 21 12 21Z"/></svg>
         <span>Support the developer</span>
       </a>
       <div class="fan">Fan-made. Not affiliated with Valve.</div>
+      <a class="privlink" href="#privacy">Privacy &amp; rules</a>
     </div>
   </aside>
 
@@ -443,7 +567,7 @@ const SITE = {
         <li>Add tips for the hero you play into that matchup. Leave blank anything you don't have.</li>
         <li>Save. The app reloads the profile straight away.</li>
       </ol>
-      <p style="font-size:15px;margin:2px 0 0">Using a profile someone else made? Open <b>Settings</b>, then <b>Load from file</b>.</p>
+      <p style="font-size:15px;margin:2px 0 0">Using a profile someone else made? Download one from <a class="inline-link" href="#profiles">Counter Profiles</a>, then open <b>Settings</b> and <b>Load from file</b>.</p>
       <div class="callout">Prefer a text editor? The profile is a simple <code>.xml</code> file. Edit it in anything you like and Counterlock re-reads it every time it starts. Keep a backup before big changes.</div>
     </section>
 
@@ -512,40 +636,214 @@ const SITE = {
       </div>
 
       <div id="profilesBoard" hidden>
-      <div class="demo-banner" id="demoBanner">
-        <b>Preview.</b> This board is running on sample data so you can see how it works. Ratings and uploads live only in this browser tab for now. Wired to the shared library, every player sees the same list, uploads stick, and ratings add up across everyone.
-      </div>
+        <div class="acct-bar" id="acctBar"></div>
 
-      <div class="board-top">
-        <div class="sortgroup" role="group" aria-label="Sort profiles">
-          <button data-sort="popular" aria-pressed="true">Popular</button>
-          <button data-sort="rated" aria-pressed="false">Top rated</button>
-          <button data-sort="new" aria-pressed="false">Newest</button>
+        <div class="board-top">
+          <div class="sortgroup" role="group" aria-label="Sort profiles">
+            <button data-sort="popular" aria-pressed="true">Popular</button>
+            <button data-sort="rated" aria-pressed="false">Top rated</button>
+            <button data-sort="new" aria-pressed="false">Newest</button>
+          </div>
+          <div class="tools">
+            <label class="search"><span class="sr">Search profiles</span>
+              <input type="search" id="searchBox" placeholder="Search by name, hero or author" maxlength="40" autocomplete="off" spellcheck="false" />
+            </label>
+            <button class="upload" id="uploadBtn" type="button">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 16V4M6 10l6-6 6 6M4 20h16" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Upload profile
+            </button>
+          </div>
+          <input type="file" id="fileInput" accept=".xml,text/xml,application/xml" hidden />
         </div>
-        <button class="upload" id="uploadBtn" type="button">
-          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 16V4M6 10l6-6 6 6M4 20h16" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Upload profile
-        </button>
-        <input type="file" id="fileInput" accept=".xml,text/xml,application/xml" hidden />
-      </div>
 
-      <div class="grid" id="grid" aria-live="polite"></div>
+        <p class="board-msg" id="boardMsg" role="status"></p>
+        <div class="grid" id="grid"></div>
+        <div class="more-wrap"><button class="btn" id="moreBtn" type="button" hidden>Show more</button></div>
+        <p class="board-foot">Downloaded a profile? In Counterlock, open <b>Settings</b>, then <b>Load from file</b>. Made your own? Upload its <code>.xml</code> file here. Uploads follow the <a class="inline-link" href="#privacy">community rules</a>.</p>
+      </div>
+    </section>
+
+    <!-- ---------- Privacy & rules ---------- -->
+    <section class="page" id="page-privacy" aria-labelledby="t-privacy">
+      <h1 class="title" id="t-privacy">Privacy &amp; rules</h1>
+      <p class="lede">No ads, no tracking, and you can delete everything yourself.</p>
+      <div class="privacy">
+        <h2>Who runs this</h2>
+        <p>Counterlock is a free, fan-made tool run by <span id="privOwner">one developer</span> in Sweden. For questions or requests about your data, <span id="privContact">send a message through the Support the developer page</span>.</p>
+
+        <h2>What's stored</h2>
+        <p>Browsing and downloading profiles needs no account, and nothing about you is saved when you do. Download counts are just numbers.</p>
+        <p>If you create an account, Counterlock stores your username, your email address, your password (as a secure one-way hash that nobody can read), the profiles you upload and the ratings you give. Your email is never shown to anyone. It's used to sign you in and for account emails: confirming your address, password resets, and a short note each time you upload a profile.</p>
+        <p>This is what it takes to run the account and library you sign up for, which is the legal basis for keeping it.</p>
+
+        <h2>Where it's kept</h2>
+        <p>Accounts, profiles and ratings are stored with Supabase on servers in the EU. Account emails are sent through Resend. The website is hosted on GitHub Pages, which, like any web host, logs visitors' IP addresses for security.</p>
+
+        <h2>Cookies</h2>
+        <p>None. When you sign in, your browser keeps a login token so you stay signed in. Signing out removes it.</p>
+
+        <h2>How long</h2>
+        <p>Until you delete your account (Account, then Delete account). That removes your email, profiles and ratings right away. Your username stays reserved for 6 months afterwards so nobody can pose as you, then anyone can take it. Signups that are never confirmed are removed after 3 days.</p>
+
+        <h2>Your rights</h2>
+        <p>You can see, correct or delete your data at any time, mostly from your account settings. For anything else, use the contact above. If you think your data is mishandled, you can also complain to IMY, the Swedish Authority for Privacy Protection.</p>
+
+        <h2>Community rules</h2>
+        <ul>
+          <li>You need to be 13 or older to create an account.</li>
+          <li>Keep profiles about Deadlock counters and tips.</li>
+          <li>No hate, harassment or personal information in usernames, profile names or descriptions.</li>
+          <li>Only upload profiles you made or have permission to share.</li>
+          <li>Profiles or accounts that break these rules can be removed without warning.</li>
+        </ul>
+        <p>Counterlock isn't affiliated with Valve. Deadlock is a trademark of Valve Corporation.</p>
       </div>
     </section>
 
   </main>
 </div>
 
+<!-- ---------- Dialogs for the Counter Profiles library ---------- -->
+<dialog class="dlg" id="dlgSignIn" aria-labelledby="dlgSignInT">
+  <div class="strip"></div>
+  <form class="dlg-form" id="formSignIn" novalidate>
+    <h2 id="dlgSignInT">Sign in</h2>
+    <label>Email<input type="email" name="email" autocomplete="email" required /></label>
+    <label>Password<input type="password" name="password" autocomplete="current-password" required /></label>
+    <p class="dlg-msg" role="alert"></p>
+    <button type="button" class="linkbtn dlg-extra" id="resendBtn" hidden>Send the confirmation email again</button>
+    <div class="dlg-actions">
+      <button type="submit" class="btn primary">Sign in</button>
+      <button type="button" class="btn" data-close>Cancel</button>
+    </div>
+    <p class="dlg-links"><a href="#" data-open="dlgForgot">Forgot your password?</a> &nbsp;&middot;&nbsp; <a href="#" data-open="dlgSignUp">Create an account</a></p>
+  </form>
+</dialog>
+
+<dialog class="dlg" id="dlgSignUp" aria-labelledby="dlgSignUpT">
+  <div class="strip"></div>
+  <form class="dlg-form" id="formSignUp" novalidate>
+    <h2 id="dlgSignUpT">Create an account</h2>
+    <p>You only need one to upload or rate. Browsing and downloading are open to everyone.</p>
+    <label>Username
+      <input type="text" name="username" autocomplete="username" maxlength="20" spellcheck="false" autocapitalize="off" required />
+      <span class="hint">3 to 20 letters, numbers, _ or -. Shown on your profiles. It can't be changed later.</span>
+    </label>
+    <label>Email
+      <input type="email" name="email" autocomplete="email" required />
+      <span class="hint">Never shown to anyone.</span>
+    </label>
+    <label>Password
+      <input type="password" name="password" autocomplete="new-password" minlength="8" required />
+      <span class="hint">At least 8 characters.</span>
+    </label>
+    <label class="check"><input type="checkbox" name="agree" /> <span>I'm 13 or older and accept the <a href="#privacy" data-close>rules and privacy notice</a>.</span></label>
+    <p class="dlg-msg" role="alert"></p>
+    <div class="dlg-actions">
+      <button type="submit" class="btn primary">Create account</button>
+      <button type="button" class="btn" data-close>Cancel</button>
+    </div>
+    <p class="dlg-links">Already have an account? <a href="#" data-open="dlgSignIn">Sign in</a></p>
+  </form>
+  <div class="dlg-body dlg-done" id="signUpDone" hidden>
+    <h2>Check your email</h2>
+    <p>We sent a confirmation link to <b id="signUpEmail"></b>. Open it to activate your account. It can take a minute, and it may land in spam.</p>
+    <div class="dlg-actions"><button type="button" class="btn primary" data-close>OK</button></div>
+  </div>
+</dialog>
+
+<dialog class="dlg" id="dlgForgot" aria-labelledby="dlgForgotT">
+  <div class="strip"></div>
+  <form class="dlg-form" id="formForgot" novalidate>
+    <h2 id="dlgForgotT">Reset your password</h2>
+    <p>Enter the email you signed up with, and we'll send a link to choose a new password.</p>
+    <label>Email<input type="email" name="email" autocomplete="email" required /></label>
+    <p class="dlg-msg" role="alert"></p>
+    <div class="dlg-actions">
+      <button type="submit" class="btn primary">Send reset link</button>
+      <button type="button" class="btn" data-close>Close</button>
+    </div>
+    <p class="dlg-links"><a href="#" data-open="dlgSignIn">Back to sign in</a></p>
+  </form>
+</dialog>
+
+<dialog class="dlg" id="dlgNewPass" aria-labelledby="dlgNewPassT">
+  <div class="strip"></div>
+  <form class="dlg-form" id="formNewPass" novalidate>
+    <h2 id="dlgNewPassT">Choose a new password</h2>
+    <label>New password<input type="password" name="password" autocomplete="new-password" minlength="8" required /><span class="hint">At least 8 characters.</span></label>
+    <label>Repeat it<input type="password" name="password2" autocomplete="new-password" minlength="8" required /></label>
+    <p class="dlg-msg" role="alert"></p>
+    <div class="dlg-actions">
+      <button type="submit" class="btn primary">Save password</button>
+      <button type="button" class="btn" data-close>Cancel</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog class="dlg" id="dlgAccount" aria-labelledby="dlgAccountT">
+  <div class="strip"></div>
+  <div class="dlg-body">
+    <h2 id="dlgAccountT">Account</h2>
+    <p class="who"><b id="acctName"></b><br><span id="acctEmail"></span></p>
+
+    <form class="dlg-sub" id="formEmail" novalidate>
+      <h3>Change email</h3>
+      <label>New email<input type="email" name="email" autocomplete="email" required /></label>
+      <p class="dlg-msg" role="alert"></p>
+      <div class="dlg-actions"><button type="submit" class="btn">Send confirmation</button></div>
+    </form>
+
+    <form class="dlg-sub" id="formPassword" novalidate>
+      <h3>Change password</h3>
+      <label>Current password<input type="password" name="current" autocomplete="current-password" required /></label>
+      <label>New password<input type="password" name="password" autocomplete="new-password" minlength="8" required /></label>
+      <label>Repeat new password<input type="password" name="password2" autocomplete="new-password" minlength="8" required /></label>
+      <p class="dlg-msg" role="alert"></p>
+      <div class="dlg-actions"><button type="submit" class="btn">Change password</button></div>
+    </form>
+
+    <form class="dlg-sub" id="formDelete" novalidate>
+      <h3>Delete account</h3>
+      <p>This deletes your account, every profile you uploaded (<b id="acctCount">0</b>) and your ratings, right away. It can't be undone. Your username stays reserved for 6 months.</p>
+      <label>Type your username to confirm<input type="text" name="confirm" autocomplete="off" spellcheck="false" autocapitalize="off" /></label>
+      <p class="dlg-msg" role="alert"></p>
+      <div class="dlg-actions"><button type="submit" class="btn danger">Delete my account</button></div>
+    </form>
+
+    <div class="dlg-actions"><button type="button" class="btn" data-close>Close</button></div>
+  </div>
+</dialog>
+
+<dialog class="dlg" id="dlgConfirm" aria-labelledby="confirmTitle" aria-describedby="confirmText">
+  <div class="strip"></div>
+  <div class="dlg-body">
+    <h2 id="confirmTitle"></h2>
+    <p id="confirmText"></p>
+    <div class="dlg-actions">
+      <button type="button" class="btn primary" id="confirmYes">OK</button>
+      <button type="button" class="btn" id="confirmNo" data-close>Cancel</button>
+    </div>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<!-- Supabase client library (supabase-js 2.117.1, MIT licence), hosted with the site. -->
+<script src="supabase.js"></script>
 <script>
 /* =========================================================================
    Counterlock site. Vanilla JS, no build step, easy to edit by hand.
+   Settings are at the very top of this file (RELEASE, SUPABASE, SITE).
 
-   Two clearly separated pieces:
-     1. Navigation + the About / Download copy (fully static).
-     2. The Counter Profiles board. It runs here in DEMO mode against the
-        SEED array below. When you deploy with a backend, replace the three
-        functions in the BACKEND SEAM block (loadProfiles / uploadProfile /
-        sendRating) with real calls and the UI stays exactly the same.
+   In order below:
+     Release info      version, file sizes and download links from GitHub
+     Navigation        the sidebar pages
+     Download page     Windows / Linux chooser
+     Helpers, dialogs  shared bits used by the library
+     Counter Profiles  the community library (Supabase). The real security
+                       is in the database rules and the "api" function; this
+                       code only displays things and asks for them.
    ========================================================================= */
 
 /* ---------------- Release info (the settings are at the top of this file) ---------------- */
@@ -609,7 +907,7 @@ const SITE = {
 })();
 
 /* ---------------- Navigation ---------------- */
-const pages = ['about','download','profiles'];
+const pages = ['about','download','profiles','privacy'];
 function show(name){
   if(!pages.includes(name)) name='about';
   pages.forEach(p=>{
@@ -642,260 +940,678 @@ window.addEventListener('hashchange',()=>show(location.hash.slice(1)));
 })();
 show(location.hash.slice(1)||'about');
 
-/* ---------------- Counter Profiles: "opening soon" or preview ---------------- */
-(function applyProfilesMode(){
-  const mode = (typeof SITE !== 'undefined' && SITE && SITE.profilesBoard) || 'coming-soon';
-  const preview = mode === 'preview';
-  const board = document.getElementById('profilesBoard');
-  const soon  = document.getElementById('profilesSoon');
-  if (board) board.hidden = !preview;
-  if (soon)  soon.hidden  = preview;
-})();
-const toEdit = document.getElementById('toEdit');
-if (toEdit) toEdit.addEventListener('click', e => {
-  e.preventDefault();
-  show('about');
-  const target = document.getElementById('edit');
-  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (target) target.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
-});
-
 /* ---------------- Small helpers ---------------- */
 const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt = n => n>=1000 ? (n/1000).toFixed(n>=10000?0:1).replace(/\.0$/,'')+'k' : String(n);
+const $ = id => document.getElementById(id);
+const day = iso => { try { return new Date(iso).toISOString().slice(0, 10); } catch (e) { return ''; } };
+const slug = s => (String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'profile');
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/* Build a small, valid Counterlock profile file from a seed, so every
-   Download button produces a real file in the right format. */
-function xmlEscape(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
-function buildProfileXml(p){
-  const heroes = p.sampleHeroes || [['warden','Warden','hybrid']];
-  const enemies = p.sampleEnemies || [];
-  let x = `<?xml version='1.0' encoding='utf-8'?>\n<counterlock_profile version="1">\n`;
-  x += `  <meta>\n    <name>${xmlEscape(p.name)}</name>\n    <patch>${xmlEscape(p.patch)}</patch>\n`;
-  x += `    <author>${xmlEscape(p.author)}</author>\n    <date>${xmlEscape(p.date)}</date>\n`;
-  x += `    <description>${xmlEscape(p.desc)}</description>\n  </meta>\n  <roster>\n`;
-  heroes.forEach(h=> x += `    <hero id="${xmlEscape(h[0])}" name="${xmlEscape(h[1])}" type="${xmlEscape(h[2]||'')}" />\n`);
-  x += `  </roster>\n  <enemies>\n`;
-  enemies.forEach(e=>{
-    x += `    <enemy id="${xmlEscape(e.id)}">\n`;
-    if(e.principle) x += `      <key_principle>${xmlEscape(e.principle)}</key_principle>\n`;
-    x += `      <counters>\n`;
-    ['lane','mid','late'].forEach(ph=>{
-      x += `        <${ph}>\n`;
-      (e[ph]||[]).forEach(it=> x += `          <item name="${xmlEscape(it)}" />\n`);
-      x += `        </${ph}>\n`;
-    });
-    x += `      </counters>\n    </enemy>\n`;
-  });
-  x += `  </enemies>\n</counterlock_profile>\n`;
-  return x;
+function saveBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
 }
+
+function busy(btn, on, label) {
+  if (!btn) return;
+  if (on) {
+    if (!btn.dataset.label) btn.dataset.label = btn.innerHTML;
+    btn.disabled = true;
+    if (label) btn.textContent = label;
+  } else {
+    btn.disabled = false;
+    if (btn.dataset.label) { btn.innerHTML = btn.dataset.label; delete btn.dataset.label; }
+  }
+}
+
+/* ---------------- Dialogs and messages ---------------- */
+function showDlg(d) { if (typeof d.showModal === 'function') d.showModal(); else d.setAttribute('open', ''); }
+function hideDlg(d) {
+  if (!d) return;
+  if (typeof d.close === 'function') { if (d.open) d.close(); }
+  else if (d.hasAttribute('open')) { d.removeAttribute('open'); d.dispatchEvent(new Event('close')); }
+}
+function closeDialogs() { document.querySelectorAll('dialog[open]').forEach(hideDlg); }
+
+function setMsg(scope, text, kind) {
+  const m = scope && scope.querySelector('.dlg-msg');
+  if (!m) return;
+  m.textContent = text || '';
+  m.className = 'dlg-msg' + (kind ? ' ' + kind : '');
+}
+
+function openDialog(id, note) {
+  const d = $(id);
+  if (!d) return null;
+  closeDialogs();
+  d.querySelectorAll('form').forEach(f => { f.reset(); f.hidden = false; setMsg(f, ''); });
+  d.querySelectorAll('.dlg-done, .dlg-extra').forEach(x => { x.hidden = true; });
+  if (note) setMsg(d.querySelector('form'), note, 'info');
+  showDlg(d);
+  const first = d.querySelector('input:not([type=checkbox]):not([type=hidden])');
+  if (first) first.focus();
+  return d;
+}
+
+document.addEventListener('click', e => {
+  const opener = e.target.closest('[data-open]');
+  if (opener) { e.preventDefault(); openDialog(opener.dataset.open); return; }
+  const closer = e.target.closest('[data-close]');
+  if (closer) {
+    // Buttons just close; a "#page" link inside a dialog closes it and then
+    // navigates normally (the hashchange handler shows the page).
+    if (closer.tagName !== 'A') e.preventDefault();
+    hideDlg(closer.closest('dialog'));
+  }
+});
+
+let toastTimer = 0;
+function toast(msg, ms) {
+  const t = $('toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), ms || 4200);
+}
+
+let confirmResolve = null;
+function confirmBox(opts) {
+  const d = $('dlgConfirm');
+  $('confirmTitle').textContent = opts.title || '';
+  $('confirmText').textContent = opts.text || '';
+  const yes = $('confirmYes'), no = $('confirmNo');
+  yes.textContent = opts.confirm || 'OK';
+  yes.className = 'btn ' + (opts.danger ? 'danger' : 'primary');
+  no.hidden = opts.cancel === null;
+  no.textContent = opts.cancel || 'Cancel';
+  closeDialogs();
+  showDlg(d);
+  yes.focus();
+  return new Promise(res => { confirmResolve = res; });
+}
+function infoBox(title, text) { return confirmBox({ title, text, confirm: 'OK', cancel: null }); }
+(function wireConfirm() {
+  const d = $('dlgConfirm');
+  if (!d) return;
+  $('confirmYes').addEventListener('click', () => {
+    const r = confirmResolve; confirmResolve = null;
+    hideDlg(d);
+    if (r) r(true);
+  });
+  d.addEventListener('close', () => {
+    const r = confirmResolve; confirmResolve = null;
+    if (r) r(false);
+  });
+})();
+
+/* ---------------- Privacy page: contact details from SITE settings ---------------- */
+(function fillPrivacy() {
+  const cfg = (typeof SITE !== 'undefined' && SITE) || {};
+  const who = $('privOwner');
+  if (who && cfg.owner) who.textContent = String(cfg.owner);
+  const line = $('privContact');
+  if (line) {
+    if (cfg.contactEmail) {
+      const a = document.createElement('a');
+      a.href = 'mailto:' + String(cfg.contactEmail);
+      a.textContent = String(cfg.contactEmail);
+      line.textContent = 'email ';
+      line.appendChild(a);
+    } else {
+      line.textContent = 'send a message through the Support the developer page';
+    }
+  }
+})();
 
 /* =========================================================================
-   BACKEND SEAM  ---  swap these three for real API calls when you deploy.
-   Everything above and below stays the same.
+   Counter Profiles: the live community library
+   Settings: SUPABASE and SITE.profilesBoard at the top of this file.
+   Security lives in the database rules and the "api" Edge Function; this
+   code only shows things and asks for them.
    ========================================================================= */
-const BACKEND = { enabled:false };  // flip to true once loadProfiles talks to your API
+const LIB = (typeof SUPABASE !== 'undefined' && SUPABASE) || {};
+const BOARD_MODE = (typeof SITE !== 'undefined' && SITE && SITE.profilesBoard) || 'coming-soon';
 
-async function loadProfiles(){
-  // DEMO: return the seed list. REAL: fetch('/api/profiles?sort=...') etc.
-  return SEED.map(p=>({...p}));
-}
-async function uploadProfile(meta, xmlText){
-  // DEMO: prepend to the in-memory list. REAL: POST the file to storage, the
-  // server re-validates (see notes), stores metadata, returns the saved row.
-  const row = { ...meta, id:'u'+Date.now(), downloads:0, ratingSum:0, ratingCount:0,
-                date:new Date().toISOString().slice(0,10), fresh:true, rawXml:xmlText };
-  state.unshift(row);
-  return row;
-}
-async function sendRating(id, stars){
-  // DEMO: adjust the in-memory row. REAL: POST the rating; the server enforces
-  // one vote per user and returns the new average.
-  const row = state.find(r=>r.id===id); if(!row) return;
-  if(row._mine){ row.ratingSum += (stars-row._mine); }
-  else { row.ratingSum += stars; row.ratingCount += 1; }
-  row._mine = stars;
-}
-/* ======================= end backend seam ============================== */
-
-/* ---------------- Seed / sample data ---------------- */
-const rosterSample = [
-  ['abrams','Abrams','gun'],['apollo','Apollo','spirit'],['haze','Haze','gun'],
-  ['warden','Warden','hybrid'],['grey_talon','Grey Talon','gun'],['lady_geist','Lady Geist','spirit']
-];
-const SEED = [
-  { id:'p1', name:'Warden Counter Tips', author:'Community PDF', patch:'2026-05-22',
-    date:'2026-05-25', downloads:2143, ratingSum:1498, ratingCount:312,
-    desc:'Counter items and matchup tips for all 37 enemy heroes. Tips are written for Warden; the items work on any hero.',
-    heroes:38, enemyN:37,
-    sampleHeroes:rosterSample,
-    sampleEnemies:[
-      {id:'abrams', principle:'Anti heal is the whole game plan.', lane:['Extra Regen','Healing Rite'], mid:['Healbane','Bullet Armor','Return Fire'], late:['Decay','Curse','Metal Skin']},
-      {id:'apollo', principle:'Bait the Riposte before you root him.', lane:['Spirit Armor','Grit'], mid:['Debuff Remover','Knockdown'], late:['Curse','Spirit Resilience']}
-    ]},
-  { id:'p2', name:'Spirit Damage Cheat Sheet', author:'geist_diff', patch:'2026-05-22',
-    date:'2026-05-23', downloads:1210, ratingSum:705, ratingCount:150,
-    desc:'One page for every spirit dealer. Armor timings, anti heal, and when to grab Ethereal Shift.',
-    heroes:38, enemyN:16,
-    sampleHeroes:rosterSample,
-    sampleEnemies:[{id:'lady_geist', principle:'She chunks her own HP to cast. Punish her low.', lane:['Spirit Armor','Extra Regen'], mid:['Healbane','Debuff Remover'], late:['Decay','Curse']}]},
-  { id:'p3', name:'Haze Hard Counters', author:'shroud_main', patch:'2026-05-22',
-    date:'2026-05-20', downloads:1487, ratingSum:965, ratingCount:201,
-    desc:'Everything that ruins a Haze game. Metal Skin windows, Return Fire, and the Last Stand trick.',
-    heroes:12, enemyN:1,
-    sampleHeroes:[['haze','Haze','gun'],['warden','Warden','hybrid']],
-    sampleEnemies:[{id:'haze', principle:'Metal Skin through Bullet Dance, then she melts herself.', lane:['Bullet Armor','Extra Regen'], mid:['Metal Skin','Return Fire','Knockdown'], late:['Improved Bullet Armor','Curse']}]},
-  { id:'p4', name:'Support Player Pack', author:'kelvin_enjoyer', patch:'2026-05-10',
-    date:'2026-05-11', downloads:903, ratingSum:378, ratingCount:88,
-    desc:'Counters framed for supports. Focuses on peel, anti heal, and stopping the big ults.',
-    heroes:38, enemyN:20, sampleHeroes:rosterSample, sampleEnemies:[]},
-  { id:'p5', name:'New Player Basics', author:'coach_lin', patch:'2026-04-30',
-    date:'2026-05-02', downloads:640, ratingSum:221, ratingCount:54,
-    desc:'The short version. Three or four safe items per enemy, no jargon, good for your first fifty hours.',
-    heroes:38, enemyN:37, sampleHeroes:rosterSample, sampleEnemies:[]},
-  { id:'p6', name:'Grey Talon Nightmare Fixes', author:'talonbtw', patch:'2026-05-22',
-    date:'2026-05-19', downloads:402, ratingSum:129, ratingCount:33,
-    desc:'For when a Talon is deleting you from across the map. Gap closers, Metal Skin, and cover routes.',
-    heroes:10, enemyN:1,
-    sampleHeroes:[['grey_talon','Grey Talon','gun'],['warden','Warden','hybrid']],
-    sampleEnemies:[{id:'grey_talon', principle:'You do not win at range. Close the distance.', lane:['Bullet Armor','Healing Rite'], mid:['Warp Stone','Return Fire'], late:['Metal Skin','Improved Bullet Armor']}]}
-];
-
-/* ---------------- Board state + render ---------------- */
-let state = [];
-let sortKey = 'popular';
-const grid = document.getElementById('grid');
-
-const avg = r => r.ratingCount ? r.ratingSum/r.ratingCount : 0;
-const sorters = {
-  popular: (a,b)=> b.downloads-a.downloads,
-  rated:   (a,b)=> avg(b)-avg(a) || b.ratingCount-a.ratingCount,
-  new:     (a,b)=> (b.date||'').localeCompare(a.date||'')
-};
-
-function starSvg(filled){
-  return `<svg class="${filled?'on':''}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l2.9 6.3 6.9.7-5.1 4.6 1.4 6.8L12 17.8 5.9 21.2l1.4-6.8L2.2 9.7l6.9-.7L12 2z"/></svg>`;
-}
-function stars(r){
-  const val = Math.round(avg(r));
-  const mine = r._mine||0;
-  let html = `<span class="stars" role="group" aria-label="Rate ${esc(r.name)}">`;
-  for(let i=1;i<=5;i++){
-    const filled = mine ? i<=mine : i<=val;
-    html += `<button type="button" data-id="${r.id}" data-star="${i}" aria-label="${i} star${i>1?'s':''}" aria-pressed="${mine===i}">${starSvg(filled)}</button>`;
+// A secret key in a public web page would hand out full control of the
+// database. Refuse to run with one, loudly.
+function keyProblem(k) {
+  k = String(k || '').trim();
+  if (/^sb_secret_/i.test(k)) return 'secret';
+  const parts = k.split('.');
+  if (parts.length === 3) {
+    try {
+      const p = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+      if (p && p.role === 'service_role') return 'secret';
+    } catch (e) { /* not a JWT */ }
   }
-  html += `</span><span class="rating-num">${r.ratingCount?avg(r).toFixed(1):'new'}${r.ratingCount?` (${fmt(r.ratingCount)})`:''}</span>`;
-  return html;
+  return '';
 }
 
-function card(r){
-  const el = document.createElement('article');
-  el.className = 'card'+(r.fresh?' fresh':'');
-  el.innerHTML = `
-    <div class="strip"></div>
-    <div class="body">
-      <div class="name">${esc(r.name)}</div>
-      <p class="by">by <b>${esc(r.author)}</b> · ${esc(r.date||'')}</p>
-      <p class="desc">${esc(r.desc||'')}</p>
-      <div class="tags">
-        <span class="tag patch">Patch ${esc(r.patch||'?')}</span>
-        <span class="tag">${r.heroes||'?'} heroes</span>
-        <span class="tag">${r.enemyN||0} matchups</span>
-        ${r.fresh?'<span class="tag fresh">just added</span>':''}
+let sb = null;
+(function startLibrary() {
+  const board = $('profilesBoard'), soon = $('profilesSoon');
+  const wantLive = BOARD_MODE === 'live';
+  const configured = !!(LIB.url && LIB.publishableKey);
+  const problem = keyProblem(LIB.publishableKey);
+  const hasLib = !!(window.supabase && typeof window.supabase.createClient === 'function');
+  let live = wantLive && configured && hasLib && !problem;
+  if (problem) {
+    console.error('Counterlock: SUPABASE.publishableKey holds a SECRET key. Remove it from index.html now and rotate it in Supabase (Settings > API Keys). The library stays off until the publishable key is used.');
+  } else if (wantLive && configured && !hasLib) {
+    console.error('Counterlock: supabase.js did not load. Upload it next to index.html.');
+  }
+  if (live) {
+    try {
+      sb = window.supabase.createClient(String(LIB.url).replace(/\/+$/, ''), LIB.publishableKey, {
+        auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
+      });
+    } catch (e) {
+      console.error('Counterlock: could not start the profile library.', e);
+      live = false;
+    }
+  }
+  if (board) board.hidden = !live;
+  if (soon) soon.hidden = live;
+})();
+
+const toEdit = $('toEdit');
+if (toEdit) toEdit.addEventListener('click', e => {
+  e.preventDefault();
+  show('about');
+  const target = $('edit');
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (target && target.scrollIntoView) target.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+});
+
+if (sb) initLibrary();
+
+function initLibrary() {
+  const grid = $('grid'), moreBtn = $('moreBtn'), boardMsg = $('boardMsg'), searchBox = $('searchBox');
+  const BASE = String(LIB.url).replace(/\/+$/, '');
+  const PAGE = 24;
+  const COLS = 'id,name,description,patch,author_name,owner_id,hero_count,matchup_count,tips_heroes,downloads,rating_avg,rating_count,created_at,file_path';
+  const S = { sort: 'popular', q: '', page: 0, rows: [], done: false, req: 0,
+              user: null, account: null, mine: new Map(), counted: new Set() };
+
+  function setBoardMsg(text, kind) {
+    boardMsg.textContent = text || '';
+    boardMsg.className = 'board-msg' + (kind ? ' ' + kind : '');
+  }
+
+  // ---------- Talking to the Edge Function ----------
+  async function callApi(body) {
+    try {
+      const { data, error } = await sb.functions.invoke('api', { body });
+      if (!error) return { data };
+      let msg = 'Something went wrong. Please try again.';
+      try {
+        const ctx = error.context;
+        const j = ctx && typeof ctx.json === 'function' ? await ctx.json() : null;
+        if (j && j.error) msg = j.error;                       // our own function's message
+        else if (ctx && ctx.status === 401) msg = "Couldn't verify your login. Sign out, sign in again, and retry.";
+        else if (j && j.message) msg = j.message;              // Supabase's gateway (setup problems)
+      } catch (e) { /* keep the generic message */ }
+      return { error: msg };
+    } catch (e) {
+      return { error: "Couldn't reach the server. Check your connection and try again." };
+    }
+  }
+
+  // ---------- Loading the list ----------
+  async function load(reset) {
+    const req = ++S.req;
+    if (reset) {
+      S.page = 0; S.rows = []; S.done = false;
+      grid.innerHTML = ''; moreBtn.hidden = true;
+      setBoardMsg('Loading profiles\u2026');
+    }
+    const term = S.q.toLowerCase().replace(/[%_,()*\\"']/g, ' ').replace(/\s+/g, ' ').trim();
+    let q = sb.from('profiles').select(COLS);
+    if (term) q = q.ilike('search', '%' + term + '%');
+    if (S.sort === 'rated') q = q.order('rating_score', { ascending: false }).order('rating_count', { ascending: false }).order('created_at', { ascending: false });
+    else if (S.sort === 'new') q = q.order('created_at', { ascending: false });
+    else q = q.order('downloads', { ascending: false }).order('created_at', { ascending: false });
+    const from = S.page * PAGE;
+    let res;
+    try { res = await q.range(from, from + PAGE - 1); } catch (e) { res = { error: e }; }
+    if (req !== S.req) return;                      // a newer search or sort took over
+    if (res.error) {
+      setBoardMsg("The profile library can't be reached right now. Try again in a little while.", 'err');
+      return;
+    }
+    const rows = res.data || [];
+    S.rows.push(...rows);
+    S.page += 1;
+    S.done = rows.length < PAGE;
+    rows.forEach(r => grid.appendChild(card(r)));
+    moreBtn.hidden = S.done;
+    setBoardMsg(S.rows.length ? '' : (term ? 'No profiles match that search.' : 'No profiles yet. Be the first to share one.'));
+  }
+
+  // ---------- Cards ----------
+  function starSvg(filled) {
+    return `<svg class="${filled ? 'on' : ''}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l2.9 6.3 6.9.7-5.1 4.6 1.4 6.8L12 17.8 5.9 21.2l1.4-6.8L2.2 9.7l6.9-.7L12 2z"/></svg>`;
+  }
+
+  function starsHtml(r, own) {
+    const avg = Number(r.rating_avg) || 0;
+    const mine = S.mine.get(r.id) || 0;
+    const shown = mine || Math.round(avg);
+    let h = `<span class="stars${mine ? ' mine' : ''}${own ? ' own' : ''}" role="group" aria-label="${own ? 'Your profile' : 'Rate ' + esc(r.name)}">`;
+    for (let i = 1; i <= 5; i++) {
+      h += `<button type="button" data-id="${esc(r.id)}" data-star="${i}" aria-label="${i} star${i > 1 ? 's' : ''}" aria-pressed="${mine === i}"${own ? ' disabled' : ''}>${starSvg(i <= shown)}</button>`;
+    }
+    h += '</span><span class="rating-num">';
+    h += r.rating_count ? `${avg.toFixed(1)} (${fmt(r.rating_count)})` : 'no ratings yet';
+    if (mine) h += ` \u00b7 you gave ${mine}`;
+    return h + '</span>';
+  }
+
+  function card(r) {
+    const own = !!(S.user && r.owner_id === S.user.id);
+    const canDelete = own || !!(S.account && S.account.is_admin);
+    const tips = Array.isArray(r.tips_heroes) ? r.tips_heroes : [];
+    const tipsTag = !tips.length ? '' : tips.length <= 2 ? 'Tips: ' + tips.join(', ') : `Tips for ${tips.length} heroes`;
+    const n = Number(r.matchup_count) || 0;
+    const el = document.createElement('article');
+    el.className = 'card';
+    el.dataset.card = r.id;
+    el.innerHTML = `
+      <div class="strip"></div>
+      <div class="body">
+        <div class="name">${esc(r.name)}</div>
+        <p class="by">by <b>${esc(r.author_name)}</b>${own ? ' <span class="you">you</span>' : ''} \u00b7 ${esc(day(r.created_at))}</p>
+        ${r.description ? `<p class="desc">${esc(r.description)}</p>` : '<p class="desc"></p>'}
+        <div class="tags">
+          ${r.patch ? `<span class="tag patch">Patch ${esc(r.patch)}</span>` : ''}
+          <span class="tag">${n} matchup${n === 1 ? '' : 's'}</span>
+          ${r.hero_count ? `<span class="tag">${Number(r.hero_count)} heroes</span>` : ''}
+          ${tipsTag ? `<span class="tag" title="${esc(tips.join(', '))}">${esc(tipsTag)}</span>` : ''}
+        </div>
       </div>
-    </div>
-    <div class="foot">
-      <span>${stars(r)}</span>
-    </div>
-    <div class="foot" style="border-top:0;padding-top:0">
-      <span class="dls">${fmt(r.downloads)} downloads</span>
-      <button class="getbtn" data-get="${r.id}" type="button">Download</button>
-    </div>`;
-  return el;
-}
-
-function render(){
-  const list = [...state].sort(sorters[sortKey]);
-  grid.innerHTML = '';
-  list.forEach(r=>grid.appendChild(card(r)));
-}
-
-/* clicks: stars + download (event-delegated so re-renders keep working) */
-grid.addEventListener('click', async (e)=>{
-  const s = e.target.closest('[data-star]');
-  if(s){ await sendRating(s.dataset.id, +s.dataset.star); render(); return; }
-  const g = e.target.closest('[data-get]');
-  if(g){
-    const r = state.find(x=>x.id===g.dataset.get);
-    if(!r) return;
-    const xml = r.rawXml || buildProfileXml(r);
-    const fname = (r.name||'profile').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'')+'.xml';
-    const blob = new Blob([xml], {type:'application/xml'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href=url; a.download=fname; document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(()=>URL.revokeObjectURL(url), 4000);
-    r.downloads += 1; render();
+      <div class="foot">${starsHtml(r, own)}</div>
+      <div class="foot" style="border-top:0;padding-top:0">
+        <span class="dls">${fmt(Number(r.downloads) || 0)} download${Number(r.downloads) === 1 ? '' : 's'}</span>
+        <span class="acts">
+          ${canDelete ? `<button class="getbtn del" data-del="${esc(r.id)}" type="button">Delete</button>` : ''}
+          <button class="getbtn" data-get="${esc(r.id)}" type="button">Download</button>
+        </span>
+      </div>`;
+    return el;
   }
-});
 
-/* sort buttons */
-document.querySelectorAll('.sortgroup button').forEach(b=>{
-  b.addEventListener('click',()=>{
-    sortKey = b.dataset.sort;
-    document.querySelectorAll('.sortgroup button').forEach(x=>x.setAttribute('aria-pressed', x===b?'true':'false'));
-    render();
+  function refreshCard(id) {
+    const r = S.rows.find(x => x.id === id);
+    const old = UUID_RE.test(id) ? grid.querySelector(`[data-card="${id}"]`) : null;
+    if (r && old) old.replaceWith(card(r));
+  }
+  function replaceRow(row) {
+    const i = S.rows.findIndex(x => x.id === row.id);
+    if (i >= 0) { S.rows[i] = row; refreshCard(row.id); }
+  }
+  function rerender() {
+    grid.innerHTML = '';
+    S.rows.forEach(r => grid.appendChild(card(r)));
+  }
+
+  // ---------- Rate, download, delete ----------
+  async function rate(id, stars) {
+    const r = S.rows.find(x => x.id === id);
+    if (!r) return;
+    if (!S.user) { openDialog('dlgSignIn', 'Sign in to rate profiles.'); return; }
+    if (r.owner_id === S.user.id) { toast("You can't rate your own profile."); return; }
+    const had = S.mine.get(id) || 0;
+    const res = had === stars
+      ? await sb.from('ratings').delete().eq('profile_id', id).eq('user_id', S.user.id)
+      : await sb.from('ratings').upsert({ profile_id: id, user_id: S.user.id, stars }, { onConflict: 'profile_id,user_id' });
+    if (res.error) { toast("Couldn't save your rating. Please try again."); return; }
+    if (had === stars) S.mine.delete(id); else S.mine.set(id, stars);
+    const fresh = await sb.from('profiles').select(COLS).eq('id', id).maybeSingle();
+    if (fresh.data) replaceRow(fresh.data); else refreshCard(id);
+    toast(had === stars ? 'Rating removed.' : `You rated it ${stars} star${stars > 1 ? 's' : ''}.`, 2500);
+  }
+
+  async function download(id, btn) {
+    const r = S.rows.find(x => x.id === id);
+    if (!r) return;
+    busy(btn, true, 'Saving\u2026');
+    try {
+      const path = String(r.file_path).split('/').map(encodeURIComponent).join('/');
+      const res = await fetch(`${BASE}/storage/v1/object/public/profiles/${path}`);
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const blob = await res.blob();
+      saveBlob(new Blob([blob], { type: 'application/xml' }), slug(r.name) + '.xml');
+      if (!S.counted.has(id)) {
+        S.counted.add(id);
+        r.downloads = (Number(r.downloads) || 0) + 1;
+        sb.rpc('record_download', { p_id: id }).then(() => {}, () => {});
+      }
+      busy(btn, false);
+      refreshCard(id);
+      toast('Saved. In Counterlock, open Settings, then Load from file.', 6000);
+    } catch (e) {
+      busy(btn, false);
+      toast("Couldn't download that profile. Please try again.");
+    }
+  }
+
+  async function removeProfile(id) {
+    const r = S.rows.find(x => x.id === id);
+    if (!r || !S.user) return;
+    const own = r.owner_id === S.user.id;
+    const ok = await confirmBox({
+      title: 'Delete this profile?',
+      text: `"${r.name}"${own ? '' : ' by ' + r.author_name} will be removed from the library for everyone. This can't be undone.`,
+      confirm: 'Delete', danger: true,
+    });
+    if (!ok) return;
+    const res = await callApi({ action: 'delete-profile', id });
+    if (res.error) { toast(res.error, 6000); return; }
+    S.rows = S.rows.filter(x => x.id !== id);
+    const el = grid.querySelector(`[data-card="${id}"]`);
+    if (el) el.remove();
+    if (!S.rows.length) setBoardMsg('No profiles yet. Be the first to share one.');
+    toast('Profile deleted.');
+  }
+
+  grid.addEventListener('click', e => {
+    const st = e.target.closest('[data-star]');
+    if (st) { if (!st.disabled) rate(st.dataset.id, Number(st.dataset.star)); return; }
+    const g = e.target.closest('[data-get]');
+    if (g) { download(g.dataset.get, g); return; }
+    const d = e.target.closest('[data-del]');
+    if (d) removeProfile(d.dataset.del);
   });
-});
 
-/* ---------------- Upload (with client-side validation) ---------------- */
-const fileInput = document.getElementById('fileInput');
-document.getElementById('uploadBtn').addEventListener('click',()=>fileInput.click());
+  // ---------- Sort, search, more ----------
+  function setSort(key) {
+    S.sort = key;
+    document.querySelectorAll('.sortgroup button').forEach(b =>
+      b.setAttribute('aria-pressed', b.dataset.sort === key ? 'true' : 'false'));
+    load(true);
+  }
+  document.querySelectorAll('.sortgroup button').forEach(b => b.addEventListener('click', () => setSort(b.dataset.sort)));
+  let searchTimer = 0;
+  searchBox.addEventListener('input', () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => { S.q = searchBox.value; load(true); }, 300);
+  });
+  moreBtn.addEventListener('click', () => load(false));
 
-function flash(msg, kind){
-  const banner = document.getElementById('demoBanner');
-  let n = document.getElementById('flashNote');
-  if(!n){ n = document.createElement('div'); n.id='flashNote'; n.className='notice'; banner.after(n); }
-  n.className = 'notice '+(kind||'');
-  n.textContent = msg;
+  // ---------- Upload ----------
+  function precheck(text) {
+    if (/<!DOCTYPE/i.test(text) || /<!ENTITY/i.test(text)) {
+      return { ok: false, msg: 'This file contains a DOCTYPE, which Counterlock profiles never use. Save it again from the app.' };
+    }
+    const doc = new DOMParser().parseFromString(text, 'application/xml');
+    if (doc.getElementsByTagName('parsererror').length) {
+      return { ok: false, msg: "That isn't valid XML. Save it again from the Profile editor and retry." };
+    }
+    const root = doc.documentElement;
+    if (!root || root.nodeName !== 'counterlock_profile') {
+      return { ok: false, msg: 'This is XML, but not a Counterlock profile.' };
+    }
+    const meta = Array.from(root.children).find(c => c.nodeName === 'meta');
+    const nameEl = meta ? Array.from(meta.children).find(c => c.nodeName === 'name') : null;
+    const name = nameEl ? nameEl.textContent.replace(/\s+/g, ' ').trim() : '';
+    if (!name) return { ok: false, msg: 'The profile has no name. Give it one in the Profile editor first.' };
+    const enemies = Array.from(root.children).find(c => c.nodeName === 'enemies');
+    const matchups = enemies ? Array.from(enemies.children).filter(c => c.nodeName === 'enemy').length : 0;
+    if (!matchups) return { ok: false, msg: 'The profile has no matchups yet. Add at least one enemy first.' };
+    return { ok: true, name: name.slice(0, 60), matchups };
+  }
+
+  $('uploadBtn').addEventListener('click', () => {
+    if (!S.user) { openDialog('dlgSignIn', 'Sign in to share a profile.'); return; }
+    $('fileInput').click();
+  });
+  $('fileInput').addEventListener('change', async () => {
+    const input = $('fileInput');
+    const file = input.files && input.files[0];
+    input.value = '';
+    if (!file) return;
+    if (file.size > 512 * 1024) { toast("That file is over 512 KB. Profiles are small text files, so this probably isn't one.", 6000); return; }
+    const text = await file.text();
+    const check = precheck(text);
+    if (!check.ok) { toast(check.msg, 7000); return; }
+    const ok = await confirmBox({
+      title: 'Share this profile?',
+      text: `"${check.name}" (${check.matchups} matchup${check.matchups === 1 ? '' : 's'}) goes into the public library under your username, where anyone can download it.`,
+      confirm: 'Upload',
+    });
+    if (!ok) return;
+    const btn = $('uploadBtn');
+    busy(btn, true, 'Uploading\u2026');
+    const res = await callApi({ action: 'upload', xml: text });
+    busy(btn, false);
+    if (res.error) { toast(res.error, 7000); return; }
+    toast(`"${check.name}" is live.` + (res.data && res.data.emailed ? ' A confirmation email is on its way.' : ''), 6000);
+    setSort('new');
+  });
+
+  // ---------- Account bar ----------
+  function renderAcct() {
+    const bar = $('acctBar');
+    if (!S.user) {
+      bar.innerHTML = '<span>Browse and download freely. Sign in to upload and rate.</span>' +
+        '<span class="acct-btns"><button class="btn" type="button" data-open="dlgSignIn">Sign in</button>' +
+        '<button class="btn primary" type="button" data-open="dlgSignUp">Create account</button></span>';
+      return;
+    }
+    const meta = S.user.user_metadata || {};
+    const name = (S.account && S.account.username) || meta.username || 'you';
+    bar.innerHTML = `<span>Signed in as <b>${esc(name)}</b>${S.account && S.account.is_admin ? ' <span class="chip-admin">Admin</span>' : ''}</span>` +
+      '<span class="acct-btns"><button class="linkbtn" type="button" id="acctOpen">Account</button>' +
+      '<button class="linkbtn" type="button" id="signOutBtn">Sign out</button></span>';
+    $('acctOpen').addEventListener('click', openAccount);
+    $('signOutBtn').addEventListener('click', async () => { await sb.auth.signOut(); toast('Signed out.'); });
+  }
+
+  async function onSession(session) {
+    const user = session ? session.user : null;
+    const changed = (user ? user.id : null) !== (S.user ? S.user.id : null);
+    S.user = user;
+    if (!user) {
+      S.account = null; S.mine = new Map();
+    } else if (changed || !S.account) {
+      const [acc, rs] = await Promise.all([
+        sb.from('accounts').select('username,is_admin').eq('id', user.id).maybeSingle(),
+        sb.from('ratings').select('profile_id,stars').limit(5000),
+      ]);
+      if (S.user !== user) return;                 // signed out meanwhile
+      S.account = acc.data || null;
+      S.mine = new Map((rs.data || []).map(x => [x.profile_id, x.stars]));
+    }
+    renderAcct();
+    if (changed) rerender();
+  }
+
+  // ---------- Links from emails (?token_hash=...&type=...) ----------
+  async function handleEmailLink() {
+    const p = new URLSearchParams(location.search);
+    const token_hash = p.get('token_hash');
+    let type = p.get('type');
+    if (!token_hash || !type) return;
+    history.replaceState(null, '', location.pathname + '#profiles');
+    show('profiles');
+    if (type === 'signup') type = 'email';
+    if (!['email', 'recovery', 'email_change'].includes(type)) return;
+    const { data, error } = await sb.auth.verifyOtp({ token_hash, type });
+    if (error) {
+      infoBox('That link has expired', 'Email links work once and expire after a while. Sign in, or ask for a new link from the sign-in window.');
+      return;
+    }
+    if (type === 'recovery') { openDialog('dlgNewPass'); return; }
+    if (type === 'email_change') {
+      infoBox('Email change confirmed', data && data.session
+        ? 'Your account now uses the new address.'
+        : 'Thanks. If a confirmation email also went to your other address, open that link too to finish the change.');
+      return;
+    }
+    infoBox('Welcome to Counterlock', "Your email is confirmed and you're signed in. You can rate profiles and share your own now.");
+  }
+
+  // ---------- Sign in ----------
+  $('formSignIn').addEventListener('submit', async e => {
+    e.preventDefault();
+    const f = e.target, btn = f.querySelector('[type=submit]');
+    const email = f.elements.email.value.trim(), password = f.elements.password.value;
+    if (!email || !password) { setMsg(f, 'Enter your email and password.', 'err'); return; }
+    busy(btn, true, 'Signing in\u2026');
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    busy(btn, false);
+    if (!error) { hideDlg($('dlgSignIn')); toast('Signed in.'); return; }
+    const m = String(error.message || '');
+    if (/confirm/i.test(m)) {
+      setMsg(f, 'Confirm your email first. Look for the link in your inbox (and spam folder).', 'err');
+      const again = $('resendBtn');
+      again.hidden = false;
+      again.onclick = async () => {
+        busy(again, true, 'Sending\u2026');
+        const r = await sb.auth.resend({ type: 'signup', email });
+        busy(again, false);
+        setMsg(f, r.error ? "Couldn't send it right now. Wait a minute and try again." : 'Sent. Check your inbox.', r.error ? 'err' : 'ok');
+      };
+    } else if (/invalid/i.test(m)) setMsg(f, 'Wrong email or password.', 'err');
+    else if (error.status === 429) setMsg(f, 'Too many attempts. Wait a minute and try again.', 'err');
+    else setMsg(f, m || 'Something went wrong. Please try again.', 'err');
+  });
+
+  // ---------- Create account ----------
+  $('formSignUp').addEventListener('submit', async e => {
+    e.preventDefault();
+    const f = e.target, btn = f.querySelector('[type=submit]');
+    const username = f.elements.username.value.trim();
+    const email = f.elements.email.value.trim();
+    const password = f.elements.password.value;
+    if (!/^[A-Za-z0-9_-]{3,20}$/.test(username)) { setMsg(f, 'Usernames are 3 to 20 letters, numbers, _ or -.', 'err'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setMsg(f, 'Enter a valid email address.', 'err'); return; }
+    if (password.length < 8) { setMsg(f, 'Use at least 8 characters for your password.', 'err'); return; }
+    if (!f.elements.agree.checked) { setMsg(f, "Please confirm you're 13 or older and accept the rules.", 'err'); return; }
+    busy(btn, true, 'Creating\u2026');
+    const st = await sb.rpc('username_status', { p_name: username });
+    if (st.error) { busy(btn, false); setMsg(f, "Couldn't check the username. Please try again.", 'err'); return; }
+    const why = {
+      taken: 'That username is taken.',
+      reserved: 'That name is reserved. Pick another.',
+      held: 'That name belonged to a deleted account and stays reserved for 6 months after deletion. Pick another.',
+      invalid: 'Usernames are 3 to 20 letters, numbers, _ or -.',
+    }[st.data];
+    if (why) { busy(btn, false); setMsg(f, why, 'err'); return; }
+    const { error } = await sb.auth.signUp({ email, password, options: { data: { username } } });
+    busy(btn, false);
+    if (error) {
+      const m = String(error.message || '');
+      if (/database error/i.test(m)) setMsg(f, 'That username was just taken. Pick another.', 'err');
+      else if (error.status === 429) setMsg(f, 'Too many signups right now. Wait a few minutes and try again.', 'err');
+      else setMsg(f, m || 'Something went wrong. Please try again.', 'err');
+      return;
+    }
+    f.hidden = true;
+    $('signUpEmail').textContent = email;
+    $('signUpDone').hidden = false;
+  });
+
+  // ---------- Forgot password / set a new one ----------
+  $('formForgot').addEventListener('submit', async e => {
+    e.preventDefault();
+    const f = e.target, btn = f.querySelector('[type=submit]');
+    const email = f.elements.email.value.trim();
+    if (!email) { setMsg(f, 'Enter the email you signed up with.', 'err'); return; }
+    busy(btn, true, 'Sending\u2026');
+    const { error } = await sb.auth.resetPasswordForEmail(email);
+    busy(btn, false);
+    if (error && error.status === 429) setMsg(f, 'Too many requests. Wait a minute and try again.', 'err');
+    else setMsg(f, "If there's an account for that email, a reset link is on its way.", 'ok');
+  });
+
+  $('formNewPass').addEventListener('submit', async e => {
+    e.preventDefault();
+    const f = e.target, btn = f.querySelector('[type=submit]');
+    const p1 = f.elements.password.value, p2 = f.elements.password2.value;
+    if (p1.length < 8) { setMsg(f, 'Use at least 8 characters.', 'err'); return; }
+    if (p1 !== p2) { setMsg(f, "The two passwords don't match.", 'err'); return; }
+    busy(btn, true, 'Saving\u2026');
+    const { error } = await sb.auth.updateUser({ password: p1 });
+    busy(btn, false);
+    if (error) { setMsg(f, /different/i.test(error.message) ? "Pick a password you haven't used here before." : error.message, 'err'); return; }
+    hideDlg($('dlgNewPass'));
+    infoBox('Password changed', "You're signed in with your new password.");
+  });
+
+  // ---------- Account settings ----------
+  async function openAccount() {
+    openDialog('dlgAccount');
+    $('acctName').textContent = S.account ? S.account.username : '';
+    $('acctEmail').textContent = S.user ? S.user.email : '';
+    $('acctCount').textContent = '\u2026';
+    const { count } = await sb.from('profiles').select('id', { count: 'exact', head: true }).eq('owner_id', S.user.id);
+    $('acctCount').textContent = String(count || 0);
+  }
+
+  $('formEmail').addEventListener('submit', async e => {
+    e.preventDefault();
+    const f = e.target, btn = f.querySelector('[type=submit]');
+    const email = f.elements.email.value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setMsg(f, 'Enter a valid email address.', 'err'); return; }
+    if (S.user && email.toLowerCase() === String(S.user.email).toLowerCase()) { setMsg(f, "That's already your email.", 'err'); return; }
+    busy(btn, true, 'Sending\u2026');
+    const { error } = await sb.auth.updateUser({ email });
+    busy(btn, false);
+    if (error) { setMsg(f, error.status === 429 ? 'Too many requests. Wait a minute and try again.' : error.message, 'err'); return; }
+    f.reset();
+    setMsg(f, `Check ${email} for a confirmation link. If one also arrives at your current address, confirm both to finish.`, 'ok');
+  });
+
+  $('formPassword').addEventListener('submit', async e => {
+    e.preventDefault();
+    const f = e.target, btn = f.querySelector('[type=submit]');
+    const cur = f.elements.current.value, p1 = f.elements.password.value, p2 = f.elements.password2.value;
+    if (!cur) { setMsg(f, 'Enter your current password.', 'err'); return; }
+    if (p1.length < 8) { setMsg(f, 'Use at least 8 characters for the new password.', 'err'); return; }
+    if (p1 !== p2) { setMsg(f, "The two new passwords don't match.", 'err'); return; }
+    busy(btn, true, 'Saving\u2026');
+    const check = await sb.auth.signInWithPassword({ email: S.user.email, password: cur });
+    if (check.error) { busy(btn, false); setMsg(f, 'Your current password is wrong.', 'err'); return; }
+    const { error } = await sb.auth.updateUser({ password: p1 });
+    busy(btn, false);
+    if (error) { setMsg(f, /different/i.test(error.message) ? 'The new password must differ from the old one.' : error.message, 'err'); return; }
+    f.reset();
+    setMsg(f, 'Password changed.', 'ok');
+  });
+
+  $('formDelete').addEventListener('submit', async e => {
+    e.preventDefault();
+    const f = e.target, btn = f.querySelector('[type=submit]');
+    const typed = f.elements.confirm.value.trim().toLowerCase();
+    if (!S.account || typed !== String(S.account.username).toLowerCase()) {
+      setMsg(f, 'Type your username exactly to confirm.', 'err');
+      return;
+    }
+    busy(btn, true, 'Deleting\u2026');
+    const res = await callApi({ action: 'delete-account' });
+    busy(btn, false);
+    if (res.error) { setMsg(f, res.error, 'err'); return; }
+    await sb.auth.signOut({ scope: 'local' });
+    closeDialogs();
+    infoBox('Account deleted', 'Your account, profiles and ratings are gone. Thanks for being part of Counterlock.');
+    load(true);
+  });
+
+  // ---------- Start ----------
+  renderAcct();
+  sb.auth.onAuthStateChange((_event, session) => {
+    // Supabase advises against awaiting other calls inside this callback.
+    setTimeout(() => { onSession(session); }, 0);
+  });
+  handleEmailLink();
+  load(true);
 }
-
-function validateProfile(text){
-  // The same checks the server must repeat. A downloaded profile is later
-  // parsed by the desktop app, so a malicious file is a real risk: reject
-  // DOCTYPE (blocks entity-expansion / external-entity tricks) and cap size.
-  if(text.length > 512*1024) return {ok:false, msg:'That file is over 512 KB. Profiles are small text files, so this is probably not one.'};
-  if(/<!DOCTYPE/i.test(text) || /<!ENTITY/i.test(text)) return {ok:false, msg:'This file uses a DOCTYPE, which counter profiles never need. Rejected for safety.'};
-  const doc = new DOMParser().parseFromString(text, 'application/xml');
-  if(doc.querySelector('parsererror')) return {ok:false, msg:'That is not valid XML. Export it again from the editor and retry.'};
-  const root = doc.querySelector('counterlock_profile');
-  if(!root) return {ok:false, msg:'This is XML, but not a Counterlock profile. The file should start with a counterlock_profile tag.'};
-  const meta = {
-    name: doc.querySelector('meta > name')?.textContent?.trim() || 'Untitled profile',
-    author: doc.querySelector('meta > author')?.textContent?.trim() || 'anonymous',
-    patch: doc.querySelector('meta > patch')?.textContent?.trim() || '?',
-    desc: doc.querySelector('meta > description')?.textContent?.trim() || '',
-    heroes: doc.querySelectorAll('roster > hero').length,
-    enemyN: doc.querySelectorAll('enemies > enemy').length
-  };
-  return {ok:true, meta};
-}
-
-fileInput.addEventListener('change', async ()=>{
-  const file = fileInput.files[0]; fileInput.value='';
-  if(!file) return;
-  const text = await file.text();
-  const res = validateProfile(text);
-  if(!res.ok){ flash(res.msg, 'err'); return; }
-  await uploadProfile(res.meta, text);
-  sortKey='new';
-  document.querySelectorAll('.sortgroup button').forEach(x=>x.setAttribute('aria-pressed', x.dataset.sort==='new'?'true':'false'));
-  render();
-  flash(`Added "${res.meta.name}" with ${res.meta.enemyN} matchups. In the preview it stays in this tab only.`, 'ok');
-});
-
-/* ---------------- Boot the board ---------------- */
-(async ()=>{ state = await loadProfiles(); render(); })();
 </script>
 </body>
 </html>
