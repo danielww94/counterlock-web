@@ -1,0 +1,8 @@
+# Shows a "Sponsor" button at the top of the counterlock-web repository page.
+# Put this file in counterlock-web at:  .github/FUNDING.yml
+# Then: counterlock-web > Settings > General > Features > tick "Sponsorships".
+
+ko_fi: counterlock
+
+# Once GitHub Sponsors approves you, remove the # at the start of the next line:
+# github: [danielww94]
