@@ -29,7 +29,10 @@ const SITE = {
   contactEmail:  'contact@getcounterlock.com',     // shown on the Privacy page, like 'contact@yourdomain.com'
   supportEmail:  'feedback@getcounterlock.com',     // help, feedback and bug reports (About page), like 'feedback@yourdomain.com'
   githubSponsors: '',    // your GitHub username once GitHub Sponsors approves you, like 'danielww94'
+  palette:       'purple', // site colours: 'purple', 'green', 'mixed' (green background, purple buttons)
+                           //   or 'purple-green' (purple background, green buttons)
 };
+document.documentElement.setAttribute('data-palette', ['green', 'mixed', 'purple-green'].includes(SITE.palette) ? SITE.palette : 'purple'); // applies the line above
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Counterlock · Counter items for Deadlock</title>
@@ -54,12 +57,98 @@ const SITE = {
     --iris-deep:#7c4fd0;
     --orchid:#d98fe4;
     --danger:#cf5d79;
+    /* shades that used to be hard-coded (purple values unchanged) */
+    --iris-rgb:198,162,251;
+    --glow-rgb:189,147,247;
+    --orchid-rgb:210,136,222;
+    --iris-hover:#d4b8fc;
+    --shot-bg:#0d0a19;
+    --dlg-bg:#130d22;
+    --toast-bg:#1b1330;
+    --star-off:#574d6e;
+    --backdrop:rgba(6,4,12,0.72);
+    --fill:var(--iris);   /* filled areas with dark text */
+    --bg-glow:radial-gradient(95% 120% at 26% -28%, rgba(150,86,232,0.32), transparent 60%),
+      radial-gradient(70% 90% at 98% -12%, rgba(206,110,206,0.15), transparent 58%),
+      linear-gradient(180deg, rgba(28,17,50,0.62) 0%, rgba(16,10,28,0.24) 46%, transparent 100%);
     --line:rgba(233,227,245,0.14);
     --line-soft:rgba(233,227,245,0.09);
     --sans:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
     --cond:'Oswald',var(--sans);
     --serif:'Cinzel',Georgia,serif;
   }
+  /* Purple-green palette (SITE.palette = 'purple-green'): the purple
+     background and panels, with Deadlock spirit green for menu items,
+     buttons and links (like the first design) and orange headings.
+     Filled areas use a slightly deeper green, easier to read. */
+  :root[data-palette="purple-green"]{
+    --iris:#57e0a0;
+    --iris-deep:#2f9e6d;
+    --orchid:#e0954f;
+    --iris-rgb:87,224,160;
+    --glow-rgb:87,224,160;
+    --orchid-rgb:224,149,79;
+    --iris-hover:#86ecbd;
+    --fill:#3fc488;
+  }
+
+  /* Mixed palette (SITE.palette = 'mixed'): the green background and panels,
+     with purple for everything you can click, and orange headings, notes
+     and stars. */
+  :root[data-palette="mixed"]{
+    --ink:#050c08;
+    --ink-2:#0a1510;
+    --panel:#0c1913;
+    --bone:#ecebf3;
+    --bone-dim:#aab0b8;
+    --iris:#c6a2fb;
+    --iris-deep:#7c4fd0;
+    --orchid:#e0954f;
+    --line:rgba(232,236,240,0.14);
+    --line-soft:rgba(232,236,240,0.09);
+    --iris-rgb:198,162,251;
+    --glow-rgb:189,147,247;
+    --orchid-rgb:224,149,79;
+    --iris-hover:#d4b8fc;
+    --shot-bg:#07110c;
+    --dlg-bg:#0b1812;
+    --toast-bg:#10231a;
+    --star-off:#454a52;
+    --backdrop:rgba(3,8,5,0.74);
+    --bg-glow:
+      radial-gradient(95% 120% at 26% -28%, rgba(38,150,98,0.34), transparent 60%),
+      radial-gradient(70% 90% at 98% -12%, rgba(217,138,74,0.10), transparent 58%),
+      linear-gradient(180deg, rgba(8,38,24,0.66) 0%, rgba(5,20,13,0.26) 46%, transparent 100%);
+  }
+  /* Green palette (SITE.palette = 'green'): Deadlock's spirit green as the main
+     accent, ember orange for headings, notes and stars, purple kept in the logo.
+     Dark green at the top fading to pure black, like the first design. */
+  :root[data-palette="green"]{
+    --ink:#050c08;
+    --ink-2:#0a1510;
+    --panel:#0c1913;
+    --bone:#e8e6da;
+    --bone-dim:#a3b3a8;
+    --iris:#5fe3a6;
+    --iris-deep:#2f9e6d;
+    --orchid:#e0954f;
+    --line:rgba(226,240,230,0.14);
+    --line-soft:rgba(226,240,230,0.09);
+    --iris-rgb:95,227,166;
+    --glow-rgb:87,224,160;
+    --orchid-rgb:224,149,79;
+    --iris-hover:#8ff0c2;
+    --shot-bg:#07110c;
+    --dlg-bg:#0b1812;
+    --toast-bg:#10231a;
+    --star-off:#3c4d44;
+    --backdrop:rgba(3,8,5,0.74);
+    --bg-glow:
+      radial-gradient(95% 120% at 26% -28%, rgba(38,150,98,0.34), transparent 60%),
+      radial-gradient(70% 90% at 98% -12%, rgba(217,138,74,0.10), transparent 58%),
+      linear-gradient(180deg, rgba(8,38,24,0.66) 0%, rgba(5,20,13,0.26) 46%, transparent 100%);
+  }
+
   :root[data-theme="light"]{ /* reserved; site ships dark by default per brief */ }
 
   *{box-sizing:border-box}
@@ -78,17 +167,14 @@ const SITE = {
   body::before{
     content:"";
     position:absolute; top:0; left:0; right:0; height:840px; z-index:0; pointer-events:none;
-    background:
-      radial-gradient(95% 120% at 26% -28%, rgba(150,86,232,0.32), transparent 60%),
-      radial-gradient(70% 90% at 98% -12%, rgba(206,110,206,0.15), transparent 58%),
-      linear-gradient(180deg, rgba(28,17,50,0.62) 0%, rgba(16,10,28,0.24) 46%, transparent 100%);
+    background:var(--bg-glow);
     opacity:0; animation:glow 1.6s ease forwards;
   }
   @keyframes glow{to{opacity:1}}
   @media (prefers-reduced-motion:reduce){ body::before{animation:none;opacity:1} }
 
   a{color:inherit}
-  ::selection{background:rgba(189,147,247,0.28)}
+  ::selection{background:rgba(var(--glow-rgb),0.28)}
 
   .shell{
     position:relative;
@@ -146,7 +232,7 @@ const SITE = {
   .navitem[aria-current="page"]{color:var(--iris)}
   .navitem[aria-current="page"] .tick{
     background:var(--iris);
-    box-shadow:0 0 10px rgba(189,147,247,0.6);
+    box-shadow:0 0 10px rgba(var(--glow-rgb),0.6);
   }
 
   .side .foot{
@@ -190,7 +276,7 @@ const SITE = {
   /* Example matchup panel (About hero) */
   .matchup{
     border:1px solid var(--line);
-    background:linear-gradient(180deg,rgba(189,147,247,0.04),transparent 60%),var(--ink-2);
+    background:linear-gradient(180deg,rgba(var(--glow-rgb),0.04),transparent 60%),var(--ink-2);
     padding:22px 24px;
     max-width:640px;
     margin:8px 0 6px;
@@ -209,7 +295,7 @@ const SITE = {
     background:rgba(233,227,212,0.03);
     white-space:nowrap;
   }
-  .chip.key{border-color:rgba(189,147,247,0.4);color:var(--iris)}
+  .chip.key{border-color:rgba(var(--glow-rgb),0.4);color:var(--iris)}
 
   /* Steps (numbered, because installing genuinely is a sequence) */
   ol.steps{list-style:none;counter-reset:s;padding:0;margin:14px 0 0;max-width:66ch}
@@ -222,7 +308,7 @@ const SITE = {
     position:absolute;left:0;top:-2px;
     width:26px;height:26px;display:grid;place-items:center;
     font-family:var(--cond);font-weight:600;font-size:14px;
-    color:var(--ink);background:var(--iris);
+    color:var(--ink);background:var(--fill);
   }
   code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
   code{
@@ -241,7 +327,7 @@ const SITE = {
     text-decoration:none;color:var(--bone);
     transition:border-color .15s ease,background .15s ease;
   }
-  .dl:hover{border-color:var(--iris);background:rgba(189,147,247,0.05)}
+  .dl:hover{border-color:var(--iris);background:rgba(var(--glow-rgb),0.05)}
   .dl:focus-visible{outline:2px solid var(--iris);outline-offset:3px}
   .dl svg{width:30px;height:30px;flex:none;color:var(--bone)}
   .dl .os{font-family:var(--cond);text-transform:uppercase;font-size:19px;font-weight:600;letter-spacing:.03em;line-height:1.1}
@@ -249,7 +335,7 @@ const SITE = {
 
   .callout{
     border-left:2px solid var(--orchid);
-    background:rgba(210,136,222,0.06);
+    background:rgba(var(--orchid-rgb),0.06);
     padding:12px 16px;margin:16px 0;font-size:14px;color:var(--bone);max-width:66ch;
   }
 
@@ -266,7 +352,7 @@ const SITE = {
     border-right:1px solid var(--line);transition:color .15s ease,background .15s ease;
   }
   .sortgroup button:last-child{border-right:0}
-  .sortgroup button[aria-pressed="true"]{color:var(--ink);background:var(--iris)}
+  .sortgroup button[aria-pressed="true"]{color:var(--ink);background:var(--fill)}
   .sortgroup button:hover:not([aria-pressed="true"]){color:var(--bone)}
   .sortgroup button:focus-visible{outline:2px solid var(--iris);outline-offset:-2px}
 
@@ -276,7 +362,7 @@ const SITE = {
     color:var(--iris);background:none;border:1px solid var(--iris-deep);
     padding:9px 16px;cursor:pointer;transition:background .15s ease;
   }
-  .upload:hover{background:rgba(189,147,247,0.08)}
+  .upload:hover{background:rgba(var(--glow-rgb),0.08)}
   .upload:focus-visible{outline:2px solid var(--iris);outline-offset:3px}
 
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:16px}
@@ -286,7 +372,7 @@ const SITE = {
     display:flex;flex-direction:column;
     transition:border-color .15s ease;
   }
-  .card:hover{border-color:rgba(189,147,247,0.35)}
+  .card:hover{border-color:rgba(var(--glow-rgb),0.35)}
   .card .strip{height:3px;background:linear-gradient(90deg,var(--iris),transparent 85%)}
   .card.fresh .strip{background:linear-gradient(90deg,var(--orchid),transparent 85%)}
   .card .body{padding:16px 18px 4px;flex:1}
@@ -296,8 +382,8 @@ const SITE = {
   .card .desc{font-size:13.5px;color:var(--bone-dim);margin:11px 0 12px}
   .tags{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px}
   .tag{font-size:11px;color:var(--bone-dim);border:1px solid var(--line);padding:2px 8px;letter-spacing:.02em}
-  .tag.patch{color:var(--iris);border-color:rgba(189,147,247,0.35)}
-  .tag.fresh{color:var(--orchid);border-color:rgba(210,136,222,0.4)}
+  .tag.patch{color:var(--iris);border-color:rgba(var(--glow-rgb),0.35)}
+  .tag.fresh{color:var(--orchid);border-color:rgba(var(--orchid-rgb),0.4)}
 
   .card .foot{
     display:flex;align-items:center;justify-content:space-between;gap:10px;
@@ -306,7 +392,7 @@ const SITE = {
   .stars{display:inline-flex;gap:2px}
   .stars button{background:none;border:0;padding:0;cursor:pointer;line-height:0}
   .stars button:focus-visible{outline:2px solid var(--iris);outline-offset:2px}
-  .stars svg{width:16px;height:16px;color:#574d6e}
+  .stars svg{width:16px;height:16px;color:var(--star-off)}
   .stars svg.on{color:var(--orchid)}
   .rating-num{font-size:12px;color:var(--bone-dim);margin-left:7px}
   .dls{font-size:12px;color:var(--bone-dim)}
@@ -324,7 +410,7 @@ const SITE = {
   .notice.ok{color:var(--iris)}
 
   /* App screenshot frame (About) */
-  .shot{border:1px solid var(--line);background:#0d0a19;padding:8px;max-width:760px;margin:8px 0 2px;line-height:0}
+  .shot{border:1px solid var(--line);background:var(--shot-bg);padding:8px;max-width:760px;margin:8px 0 2px;line-height:0}
   .shot img{width:100%;height:auto;display:block;border:1px solid var(--line-soft)}
   .shotcap{font-size:13px;color:var(--bone-dim);margin-top:12px}
 
@@ -333,13 +419,13 @@ const SITE = {
     display:flex;align-items:center;justify-content:center;gap:9px;
     margin:16px 0 2px;padding:11px 12px;
     border:1px solid var(--iris-deep);
-    background:rgba(198,162,251,0.10);
+    background:rgba(var(--iris-rgb),0.10);
     color:var(--bone);
     font-family:var(--cond);text-transform:uppercase;letter-spacing:.03em;font-size:13px;
     text-decoration:none;
     transition:background .15s ease,border-color .15s ease;
   }
-  .support:hover{background:rgba(198,162,251,0.18);border-color:var(--iris)}
+  .support:hover{background:rgba(var(--iris-rgb),0.18);border-color:var(--iris)}
   .support:focus-visible{outline:2px solid var(--iris);outline-offset:3px}
   .support svg{width:16px;height:16px;flex:none;color:#e46fa0}
 
@@ -349,7 +435,7 @@ const SITE = {
   .soon{border:1px solid var(--line);background:var(--ink-2);padding:20px 24px;max-width:640px;margin:6px 0 0}
   .soon-label{font-family:var(--cond);text-transform:uppercase;letter-spacing:.06em;font-size:13px;color:var(--orchid);margin-bottom:8px}
   .soon p{margin:0;font-size:15px;color:var(--bone)}
-  .soon a,.verify a{color:var(--iris);text-decoration:none;border-bottom:1px solid rgba(198,162,251,0.4)}
+  .soon a,.verify a{color:var(--iris);text-decoration:none;border-bottom:1px solid rgba(var(--iris-rgb),0.4)}
   .soon a:hover,.verify a:hover{border-bottom-color:var(--iris)}
 
   /* Download: choose a platform first */
@@ -362,7 +448,7 @@ const SITE = {
   }
   .os-tab:last-child{border-right:0}
   .os-tab svg{width:22px;height:22px;flex:none}
-  .os-tab[aria-pressed="true"]{color:var(--ink);background:var(--iris)}
+  .os-tab[aria-pressed="true"]{color:var(--ink);background:var(--fill)}
   .os-tab:hover:not([aria-pressed="true"]){color:var(--bone)}
   .os-tab:focus-visible{outline:2px solid var(--iris);outline-offset:-2px}
   .os-hint{color:var(--bone-dim);font-size:15px;margin:0 0 8px}
@@ -383,7 +469,7 @@ const SITE = {
   }
   .linkbtn{
     background:none;border:0;padding:0;cursor:pointer;font:inherit;font-size:14px;
-    color:var(--iris);border-bottom:1px solid rgba(198,162,251,0.4);
+    color:var(--iris);border-bottom:1px solid rgba(var(--iris-rgb),0.4);
   }
   .linkbtn:hover{border-bottom-color:var(--iris)}
   .linkbtn:focus-visible{outline:2px solid var(--iris);outline-offset:3px}
@@ -395,8 +481,8 @@ const SITE = {
     transition:border-color .15s ease,background .15s ease,color .15s ease;
   }
   .btn:hover{border-color:var(--iris);color:var(--iris)}
-  .btn.primary{background:var(--iris);border-color:var(--iris);color:var(--ink)}
-  .btn.primary:hover{background:#d4b8fc;border-color:#d4b8fc;color:var(--ink)}
+  .btn.primary{background:var(--fill);border-color:var(--fill);color:var(--ink)}
+  .btn.primary:hover{background:var(--iris-hover);border-color:var(--iris-hover);color:var(--ink)}
   .btn.danger{border-color:rgba(224,138,122,0.55);color:#f0a99b}
   .btn.danger:hover{background:rgba(224,138,122,0.12);border-color:#e08a7a;color:#f6c0b5}
   .btn:focus-visible{outline:2px solid var(--iris);outline-offset:2px}
@@ -418,7 +504,7 @@ const SITE = {
   .board-foot b{color:var(--bone);font-weight:500}
   .card .you{
     font-family:var(--cond);text-transform:uppercase;font-size:10.5px;letter-spacing:.06em;
-    color:var(--orchid);border:1px solid rgba(210,136,222,0.4);padding:0 5px;margin-left:3px;
+    color:var(--orchid);border:1px solid rgba(var(--orchid-rgb),0.4);padding:0 5px;margin-left:3px;
   }
   .acts{display:flex;gap:8px}
   .getbtn.del{color:#f0a99b;border-color:rgba(224,138,122,0.4)}
@@ -427,16 +513,16 @@ const SITE = {
   .stars.mine svg.on{color:var(--iris)}
   .stars.own button{cursor:default}
   .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-  .inline-link{color:var(--iris);text-decoration:none;border-bottom:1px solid rgba(198,162,251,0.4)}
+  .inline-link{color:var(--iris);text-decoration:none;border-bottom:1px solid rgba(var(--iris-rgb),0.4)}
   .inline-link:hover{border-bottom-color:var(--iris)}
 
   /* Dialogs: sign in, create account, account settings, confirmations */
   .dlg{
-    border:1px solid var(--line);background:#130d22;color:var(--bone);padding:0;
+    border:1px solid var(--line);background:var(--dlg-bg);color:var(--bone);padding:0;
     width:min(440px,calc(100% - 28px));max-height:calc(100% - 28px);overflow:auto;
     box-shadow:0 24px 60px rgba(0,0,0,.55);
   }
-  .dlg::backdrop{background:rgba(6,4,12,0.72)}
+  .dlg::backdrop{background:var(--backdrop)}
   .dlg .strip{height:3px;background:linear-gradient(90deg,var(--iris),transparent 85%)}
   .dlg-form,.dlg-body{padding:22px 24px 20px;display:flex;flex-direction:column;gap:12px}
   .dlg-sub{display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--line-soft);padding-top:14px;margin-top:2px}
@@ -459,7 +545,7 @@ const SITE = {
   .dlg .hint{font-size:12px;opacity:.85}
   .dlg label.check{flex-direction:row;align-items:flex-start;gap:9px;font-size:13px;color:var(--bone)}
   .dlg label.check input{margin:3px 0 0;accent-color:var(--iris)}
-  .dlg a{color:var(--iris);text-decoration:none;border-bottom:1px solid rgba(198,162,251,0.4)}
+  .dlg a{color:var(--iris);text-decoration:none;border-bottom:1px solid rgba(var(--iris-rgb),0.4)}
   .dlg a:hover{border-bottom-color:var(--iris)}
   .dlg .linkbtn{align-self:flex-start;font-size:13px}
   .dlg-msg{font-size:13.5px;margin:0}
@@ -475,7 +561,7 @@ const SITE = {
 
   .toast{
     position:fixed;left:50%;bottom:22px;transform:translate(-50%,8px);z-index:60;
-    background:#1b1330;border:1px solid var(--iris-deep);color:var(--bone);font-size:14px;
+    background:var(--toast-bg);border:1px solid var(--iris-deep);color:var(--bone);font-size:14px;
     padding:12px 18px;max-width:min(560px,calc(100% - 28px));box-shadow:0 12px 30px rgba(0,0,0,.45);
     opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease;
   }
@@ -491,7 +577,7 @@ const SITE = {
   .privacy p{margin:0 0 10px}
   .privacy ul{margin:0 0 10px;padding-left:20px}
   .privacy li{margin:0 0 6px}
-  .privacy a{color:var(--iris);text-decoration:none;border-bottom:1px solid rgba(198,162,251,0.4)}
+  .privacy a{color:var(--iris);text-decoration:none;border-bottom:1px solid rgba(var(--iris-rgb),0.4)}
   .privacy a:hover{border-bottom-color:var(--iris)}
   .side .foot .privlink{display:inline-block;margin-top:10px;font-size:12px}
 
@@ -517,7 +603,7 @@ const SITE = {
   .help-card p{margin:0 0 14px;font-size:15px;color:var(--bone)}
   .help-mail{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin:0 0 16px}
   .help-address{font-family:var(--cond);font-size:22px;letter-spacing:.02em;color:var(--iris);text-decoration:none;
-    border-bottom:1px solid rgba(198,162,251,0.4);overflow-wrap:anywhere}
+    border-bottom:1px solid rgba(var(--iris-rgb),0.4);overflow-wrap:anywhere}
   .help-address:hover{border-bottom-color:var(--iris)}
   .help-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px}
   .help-note{font-size:13px;color:var(--bone-dim);max-width:52ch}
@@ -531,7 +617,7 @@ const SITE = {
   .link-row b{display:block;font-weight:600;font-size:15px}
   .link-row small{display:block;color:var(--bone-dim);font-size:13px}
   .support.alt{margin-top:8px;background:none;border-color:var(--line)}
-  .support.alt:hover{border-color:var(--iris);background:rgba(198,162,251,0.08)}
+  .support.alt:hover{border-color:var(--iris);background:rgba(var(--iris-rgb),0.08)}
   .side .foot .sidelinks{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin-top:10px}
   .side .foot .sidelinks a{font-size:12px}
   .hp{position:absolute !important;left:-10000px;width:1px;height:1px;overflow:hidden}
@@ -754,7 +840,7 @@ const SITE = {
 
         <h2>Where it's kept</h2>
         <p>Accounts, profiles and ratings are stored with Supabase on servers in the EU, and emails are sent through Resend. The site runs on GitHub Pages, which logs visitor IP addresses for security, like any web host.</p>
-        <p>Messages from the contact form are emailed to us through Resend so we can reply. The site itself keeps no copy, only a scrambled version of your IP address for two days, to stop spam. Donations go through Ko-fi or GitHub, under their own privacy policies.</p>
+        <p>Messages from the contact form are emailed to us through Resend so we can reply. The site itself keeps no copy, only a scrambled version of your IP address for two days, to stop spam. Tips go through Ko-fi, under its own privacy policy.</p>
         <p>No cookies. Signing in saves a login token in your browser, and signing out removes it.</p>
 
         <h2>How long</h2>
@@ -1183,6 +1269,12 @@ function infoBox(title, text) { return confirmBox({ title, text, confirm: 'OK', 
     if (r) r(false);
   });
 })();
+
+/* Phones tint the browser bar with theme-color; match the green palette. */
+if (['green', 'mixed'].includes(document.documentElement.getAttribute('data-palette'))) {
+  const tc = document.querySelector('meta[name="theme-color"]');
+  if (tc) tc.setAttribute('content', '#050c08');
+}
 
 /* ---------------- Help, feedback & links (About page, sidebar) ---------------- */
 const SUPPORT_EMAIL = String(((typeof SITE !== 'undefined' && SITE) || {}).supportEmail || '').trim();
