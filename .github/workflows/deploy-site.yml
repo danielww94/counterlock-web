@@ -1,0 +1,81 @@
+# Publishes getcounterlock.com with GitHub Pages.
+#
+# The site is this repo's files plus the web version of Counterlock at /app/,
+# unpacked from Counterlock-web.zip in the latest published release. Runs when
+# you push to main, when you publish a release (so clicking "Publish release"
+# puts the new desktop downloads and the new web version live together), and
+# from the Actions tab ("Run workflow").
+#
+# If no release has Counterlock-web.zip yet, the site is published without
+# /app/, exactly as before.
+#
+# One-time setup: Settings > Pages > Build and deployment > Source: "GitHub
+# Actions". The custom domain (getcounterlock.com) stays as set there.
+name: Deploy site
+
+on:
+  push:
+    branches: [main]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Assemble the site
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Site files
+        run: |
+          mkdir _site
+          # Everything in the repo except git and GitHub settings and the
+          # notes for developers (README.md, CLAUDE.md).
+          shopt -s dotglob
+          for item in *; do
+            case "$item" in
+              .git|.github|_site|README.md|CLAUDE.md) ;;
+              *) cp -r "$item" _site/ ;;
+            esac
+          done
+          # app/ is never taken from the repo, only from the release below.
+          rm -rf _site/app
+          ls -la _site
+
+      - name: Web version from the latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release download --repo "$GITHUB_REPOSITORY" --pattern Counterlock-web.zip --dir /tmp/web; then
+            mkdir -p _site/app
+            unzip -q /tmp/web/Counterlock-web.zip -d _site/app
+            echo "Web version: $(cat _site/app/version.json)"
+          else
+            echo "::warning::The latest release has no Counterlock-web.zip yet, so the site is published without /app/."
+          fi
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+
+  deploy:
+    name: Publish
+    needs: build
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
