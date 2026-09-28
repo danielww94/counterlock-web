@@ -18,6 +18,8 @@ Open the website and press the download button for your system, or grab the newe
 
 Windows gets a single Counterlock.exe that you just open, there's nothing to install. Linux gets a single Counterlock file that works the same way. Both carry everything they need inside, so Python and the rest don't have to be on the machine. The first time you open the Windows one, SmartScreen might warn you because the app isn't signed, so click "More info" and then "Run anyway".
 
+You can also skip the download and use it in your browser at https://getcounterlock.com/app/, on a PC or a phone. It's the same app. Your profiles and settings are kept in that browser, so use Export all profiles in the settings to keep a backup.
+
 ## Editing the counters
 
 Every matchup lives in a profile you can change yourself, and there are two ways in.

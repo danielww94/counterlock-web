@@ -36,7 +36,7 @@ document.documentElement.setAttribute('data-palette', ['green', 'mixed', 'purple
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Counterlock · Counter items for Deadlock</title>
-<meta name="description" content="Counterlock is a desktop companion for Deadlock. Pick the hero you're up against and see the counter items to buy." />
+<meta name="description" content="Counterlock is a companion for Deadlock, for Windows, Linux and your browser. Pick the hero you're up against and see the counter items to buy." />
 <meta name="theme-color" content="#0a0713" />
 <link rel="icon" href="favicon.ico" sizes="any" />
 <style>
@@ -665,7 +665,7 @@ document.documentElement.setAttribute('data-palette', ['green', 'mixed', 'purple
 
     <div class="foot">
       <div>Counterlock <span class="v" id="ver">v0.33</span></div>
-      <div>For Deadlock. Windows &amp; Linux.</div>
+      <div>For Deadlock. Windows, Linux &amp; web.</div>
       <a class="support" href="https://ko-fi.com/counterlock" target="_blank" rel="noopener noreferrer" aria-label="Support the developer on Ko-fi (opens in a new tab)">
         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21s-6.9-4.35-9.5-8.28C.62 9.8 1.5 6.2 4.5 5.08c2.05-.77 4.28-.03 5.5 1.72L12 8.6l2-1.8c1.22-1.75 3.45-2.49 5.5-1.72 3 1.12 3.88 4.72 2 7.64C18.9 16.65 12 21 12 21Z"/></svg>
         <span>Support the developer</span>
@@ -688,7 +688,7 @@ document.documentElement.setAttribute('data-palette', ['green', 'mixed', 'purple
     <!-- ---------- About (home) ---------- -->
     <section class="page active" id="page-about" aria-labelledby="t-about">
       <h1 class="title" id="t-about">Counter the enemy</h1>
-      <p class="lede">A desktop companion for Deadlock. Tell it who you’re up against and it shows you exactly what to buy, and how to play the matchup.</p>
+      <p class="lede">A companion for Deadlock, on your PC or in your browser. Tell it who you’re up against and it shows you exactly what to buy, and how to play the matchup.</p>
 
       <div class="prose">
         <p>You pick the enemy hero. Counterlock shows the counter items split into lane, mid and late game, plus short tips for the hero you are playing. All of it reads from plain profile files, so the advice keeps up with the patch instead of going stale.</p>
@@ -753,8 +753,9 @@ document.documentElement.setAttribute('data-palette', ['green', 'mixed', 'purple
       <div class="os-choose" role="group" aria-label="Choose your system">
         <button class="os-tab" type="button" data-os="win" aria-pressed="false" aria-controls="osWin"><svg viewBox="0 0 48 48" fill="currentColor" aria-hidden="true"><path d="M6 9.8 22 7.7v15.1H6V9.8Zm0 28.4 16 2.1V25.2H6v13ZM24 7.4 44 4.6v18.2H24V7.4Zm0 33.2 20 2.8V25.2H24v15.4Z"/></svg> Windows</button>
         <button class="os-tab" type="button" data-os="lin" aria-pressed="false" aria-controls="osLin"><svg viewBox="0 0 48 48" fill="currentColor" aria-hidden="true"><path d="M24 4c-4.4 0-7 3.6-7 8.4 0 2.7-.2 4.6-1.6 7-2.6 4.3-6 8-6 12.8 0 1.9 1 3 2.6 3 .7 2.4 2.3 4.2 4.4 5 .7 1.4 2.4 2.6 4.7 2.6h5.8c2.3 0 4-1.2 4.7-2.6 2.1-.8 3.7-2.6 4.4-5 1.6 0 2.6-1.1 2.6-3 0-4.8-3.4-8.5-6-12.8-1.4-2.4-1.6-4.3-1.6-7C31 7.6 28.4 4 24 4Zm-3.5 9.2c.8 0 1.4.9 1.4 2s-.6 2-1.4 2-1.4-.9-1.4-2 .6-2 1.4-2Zm7 0c.8 0 1.4.9 1.4 2s-.6 2-1.4 2-1.4-.9-1.4-2 .6-2 1.4-2ZM24 20c2 0 4 1 4 2 0 .8-2 2.2-4 2.2S20 22.8 20 22c0-1 2-2 4-2Z"/></svg> Linux</button>
+        <button class="os-tab" type="button" data-os="web" aria-pressed="false" aria-controls="osWeb"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.2" aria-hidden="true"><circle cx="24" cy="24" r="19"/><path d="M5 24h38M24 5c5.2 5.2 7.8 11.5 7.8 19S29.2 37.8 24 43c-5.2-5.2-7.8-11.5-7.8-19S18.8 10.2 24 5Z"/></svg> Web</button>
       </div>
-      <p class="os-hint" id="osHint">Pick Windows or Linux to see the download and the setup steps.</p>
+      <p class="os-hint" id="osHint">Pick Windows, Linux or Web to see the download and the setup steps.</p>
 
       <div class="os-panel" id="osWin" hidden>
 
@@ -807,6 +808,23 @@ document.documentElement.setAttribute('data-palette', ['green', 'mixed', 'purple
           </div>
         </div>
         <p class="verify">Removing Counterlock? Also delete <code>~/.local/share/applications/counterlock.desktop</code> and the menu entry goes away.</p>
+      </div>
+
+      <div class="os-panel" id="osWeb" hidden>
+        <div class="dl-row">
+          <a class="dl" id="openWeb" href="app/" aria-label="Open Counterlock in your browser">
+            <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.2" aria-hidden="true"><circle cx="24" cy="24" r="19"/><path d="M5 24h38M24 5c5.2 5.2 7.8 11.5 7.8 19S29.2 37.8 24 43c-5.2-5.2-7.8-11.5-7.8-19S18.8 10.2 24 5Z"/></svg>
+            <span>
+              <span class="os">Open in your browser</span>
+              <span class="meta">getcounterlock.com/app</span>
+            </span>
+          </a>
+        </div>
+        <ol class="steps">
+          <li>Works on PCs and phones, with nothing to install. It's the same app as the download.</li>
+          <li>Your profiles and settings are kept in this browser. Use <b>Export all profiles</b> (Settings, Load profile) to keep a backup.</li>
+          <li>On a phone, add it to your Home Screen to open it like an app, even offline.</li>
+        </ol>
       </div>
     </section>
 
@@ -1172,7 +1190,7 @@ window.addEventListener('hashchange',()=>show(location.hash.slice(1)));
 (function(){
   const tabs = document.querySelectorAll('.os-tab');
   const hint = document.getElementById('osHint');
-  const panels = { win: document.getElementById('osWin'), lin: document.getElementById('osLin') };
+  const panels = { win: document.getElementById('osWin'), lin: document.getElementById('osLin'), web: document.getElementById('osWeb') };
   tabs.forEach(t => t.addEventListener('click', () => {
     const os = t.dataset.os;
     tabs.forEach(x => x.setAttribute('aria-pressed', x === t ? 'true' : 'false'));

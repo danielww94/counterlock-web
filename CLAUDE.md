@@ -18,8 +18,12 @@ hand in short numbered steps.
   Keep it next to `index.html`.
 - Never add secrets. Everything in this repo is public.
 - `app/` is the web version. It is generated from the private repo at deploy
-  time by `.github/workflows/deploy-site.yml`. Never edit it by hand here; change
-  the source in the private repo instead.
+  time by `.github/workflows/deploy-site.yml` (unpacked from
+  `Counterlock-web.zip` in the latest published release). Never edit it by hand
+  here; change the source in the private repo instead.
+- Pages publishes through that workflow (Settings > Pages > Source: GitHub
+  Actions), so the site is exactly the repo's files (minus `.github`,
+  `README.md`, `CLAUDE.md`) plus `app/`.
 - Keep changes to `index.html` small and targeted. Don't restructure the page.
 - Website text: short, plain, natural. No em dashes or en dashes.
 - Version numbers and download links come from the GitHub releases API
