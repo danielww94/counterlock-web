@@ -4,7 +4,8 @@
 #   - Phone (iPhone 15, 393x852): the page content starts right after the
 #     sidebar, instead of a screen-tall sidebar with empty space.
 #   - PC (1440x900): the sidebar fills the window and the About page looks
-#     exactly as before, pixel for pixel.
+#     exactly as before, pixel for pixel (if the pull request replaces the
+#     app screenshot on About, everything except that image).
 #
 # Before and after screenshots from both engines are kept under the run's
 # "Artifacts" for 14 days. The scripts are in .github/layout-check/. None of
