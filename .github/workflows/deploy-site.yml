@@ -6,8 +6,19 @@
 # puts the new desktop downloads and the new web version live together), and
 # from the Actions tab ("Run workflow").
 #
+# GitHub Pages treats the commit as the deploy's identity: publishing a commit
+# it has published before is reported as a success but keeps the old files.
+# That is how 0.38 stayed at 0.37 (the site repo hadn't changed since). So a
+# release, or "Run workflow", first records the release in
+# .github/live-release.txt as a new commit on main, then deploys that commit
+# in a second run. A push to main is new already and deploys at once. (A
+# release also can't deploy from its own tag: the github-pages environment
+# only lets main deploy.)
+#
 # If no release has Counterlock-web.zip yet, the site is published without
-# /app/, exactly as before.
+# /app/, exactly as before. After publishing, the run waits until
+# getcounterlock.com/app/ really serves the new version, and fails if it
+# doesn't, so a green run means the site is up to date.
 #
 # One-time setup: Settings > Pages > Build and deployment > Source: "GitHub
 # Actions". The custom domain (getcounterlock.com) stays as set there.
@@ -19,6 +30,11 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      fresh_commit:
+        description: Make a new commit first (leave ticked, or Pages may keep the old files)
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -30,9 +46,48 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  fresh-commit:
+    name: New commit to deploy
+    if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.fresh_commit)
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+
+      - name: Record the release on main and deploy it
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          tag=$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName) || tag="no release yet"
+          {
+            echo "Written by the \"Deploy site\" workflow. Don't edit."
+            echo "GitHub Pages only publishes a commit once, so every deploy gets a new one."
+            echo
+            echo "Latest release: $tag"
+            echo "Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID (attempt $GITHUB_RUN_ATTEMPT)"
+          } > .github/live-release.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/live-release.txt
+          git commit -q -m "Deploy site: $tag"
+          if ! git push origin "HEAD:$BRANCH"; then
+            echo "::error::Couldn't add the deploy commit to $BRANCH. If $BRANCH is protected, allow GitHub Actions to push to it."
+            exit 1
+          fi
+          gh workflow run deploy-site.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH" -f fresh_commit=false
+          echo "Committed $(git rev-parse --short HEAD) and started \"Deploy site\" on $BRANCH. That run publishes the site."
+
   build:
     name: Assemble the site
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && !inputs.fresh_commit)
     runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.web.outputs.version }}
     steps:
       - uses: actions/checkout@v5
 
@@ -53,13 +108,22 @@ jobs:
           ls -la _site
 
       - name: Web version from the latest release
+        id: web
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if gh release download --repo "$GITHUB_REPOSITORY" --pattern Counterlock-web.zip --dir /tmp/web; then
+          tag=$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName) || tag=""
+          echo "Latest release: ${tag:-none}"
+          if [ -n "$tag" ] && gh release download "$tag" --repo "$GITHUB_REPOSITORY" --pattern Counterlock-web.zip --dir /tmp/web; then
             mkdir -p _site/app
             unzip -q /tmp/web/Counterlock-web.zip -d _site/app
-            echo "Web version: $(cat _site/app/version.json)"
+            version=$(jq -r .version _site/app/version.json)
+            echo "Web version: $version"
+            if [ "v$version" != "$tag" ]; then
+              echo "::error::Counterlock-web.zip in $tag says it is version $version. Rebuild the release so the numbers match."
+              exit 1
+            fi
+            echo "version=$version" >> "$GITHUB_OUTPUT"
           else
             echo "::warning::The latest release has no Counterlock-web.zip yet, so the site is published without /app/."
           fi
@@ -79,3 +143,22 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Check that the site serves the new web version
+        if: needs.build.outputs.version != ''
+        env:
+          WANT: ${{ needs.build.outputs.version }}
+          SITE: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          url="${SITE%/}/app/version.json"
+          for i in $(seq 1 40); do
+            got=$(curl -fsSL -H "Cache-Control: no-cache" "$url?check=$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-$i" | jq -r .version 2>/dev/null || true)
+            if [ "$got" = "$WANT" ]; then
+              echo "$url shows $got. The site is up to date."
+              exit 0
+            fi
+            echo "Still ${got:-nothing} at $url, waiting for $WANT..."
+            sleep 15
+          done
+          echo "::error::Published, but after 10 minutes $url still says ${got:-nothing} instead of $WANT. If this was a re-run, use Run workflow instead: Pages keeps the old files when the same commit is deployed again."
+          exit 1
