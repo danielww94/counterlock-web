@@ -6,8 +6,14 @@
 # puts the new desktop downloads and the new web version live together), and
 # from the Actions tab ("Run workflow").
 #
+# A release runs on its tag (v0.38), and the github-pages environment only
+# lets main deploy. So a release doesn't deploy itself: it starts this
+# workflow again on main, which then deploys the latest release as usual.
+#
 # If no release has Counterlock-web.zip yet, the site is published without
-# /app/, exactly as before.
+# /app/, exactly as before. After publishing, the run waits until
+# getcounterlock.com/app/ really serves the new version, and fails if it
+# doesn't, so a green run means the site is up to date.
 #
 # One-time setup: Settings > Pages > Build and deployment > Source: "GitHub
 # Actions". The custom domain (getcounterlock.com) stays as set there.
@@ -30,9 +36,27 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  handoff:
+    name: Deploy from main
+    if: github.event_name == 'release'
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: write
+    steps:
+      - name: Start "Deploy site" on main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          gh workflow run deploy-site.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH"
+          echo "Started \"Deploy site\" on $BRANCH. That run publishes the site."
+
   build:
     name: Assemble the site
+    if: github.event_name != 'release'
     runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.web.outputs.version }}
     steps:
       - uses: actions/checkout@v5
 
@@ -53,13 +77,22 @@ jobs:
           ls -la _site
 
       - name: Web version from the latest release
+        id: web
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if gh release download --repo "$GITHUB_REPOSITORY" --pattern Counterlock-web.zip --dir /tmp/web; then
+          tag=$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName) || tag=""
+          echo "Latest release: ${tag:-none}"
+          if [ -n "$tag" ] && gh release download "$tag" --repo "$GITHUB_REPOSITORY" --pattern Counterlock-web.zip --dir /tmp/web; then
             mkdir -p _site/app
             unzip -q /tmp/web/Counterlock-web.zip -d _site/app
-            echo "Web version: $(cat _site/app/version.json)"
+            version=$(jq -r .version _site/app/version.json)
+            echo "Web version: $version"
+            if [ "v$version" != "$tag" ]; then
+              echo "::error::Counterlock-web.zip in $tag says it is version $version. Rebuild the release so the numbers match."
+              exit 1
+            fi
+            echo "version=$version" >> "$GITHUB_OUTPUT"
           else
             echo "::warning::The latest release has no Counterlock-web.zip yet, so the site is published without /app/."
           fi
@@ -79,3 +112,22 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Check that the site serves the new web version
+        if: needs.build.outputs.version != ''
+        env:
+          WANT: ${{ needs.build.outputs.version }}
+          SITE: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          url="${SITE%/}/app/version.json"
+          for i in $(seq 1 40); do
+            got=$(curl -fsSL -H "Cache-Control: no-cache" "$url?check=$GITHUB_RUN_ID-$GITHUB_RUN_ATTEMPT-$i" | jq -r .version 2>/dev/null || true)
+            if [ "$got" = "$WANT" ]; then
+              echo "$url shows $got. The site is up to date."
+              exit 0
+            fi
+            echo "Still ${got:-nothing} at $url, waiting for $WANT..."
+            sleep 15
+          done
+          echo "::error::Published, but after 10 minutes $url still says ${got:-nothing} instead of $WANT."
+          exit 1
