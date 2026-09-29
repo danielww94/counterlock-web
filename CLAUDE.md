@@ -24,6 +24,11 @@ hand in short numbered steps.
 - Pages publishes through that workflow (Settings > Pages > Source: GitHub
   Actions), so the site is exactly the repo's files (minus `.github`,
   `README.md`, `CLAUDE.md`) plus `app/`.
+- Pages publishes a given commit only once: deploying the same commit again
+  reports success but keeps the old files. So on a release or "Run workflow",
+  `deploy-site.yml` first commits `.github/live-release.txt` to `main` and
+  deploys that new commit. Don't edit that file, and don't replace this with
+  a re-run of an old run.
 - Keep changes to `index.html` small and targeted. Don't restructure the page.
 - Website text: short, plain, natural. No em dashes or en dashes.
 - Version numbers and download links come from the GitHub releases API
