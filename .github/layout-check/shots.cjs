@@ -5,7 +5,10 @@
 // lookups fall back the same way every time), then for a phone (iPhone 15,
 // 393x852) and a PC (1440x900) saves About and Download screenshots and
 // writes report.json with where the sidebar ends and the page content starts.
+// On About it also saves the view with the app screenshot covered, and the
+// "What a matchup looks like" section on its own, for looking at that image.
 
+const crypto = require("crypto");
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
@@ -46,6 +49,12 @@ server.listen(0, async () => {
         await page.goto(`${url}#${tab}`);
         await page.waitForTimeout(800);
         await page.screenshot({ path: path.join(out, `${engine}-${size}-${tab}.png`) });
+        // The same view with the app screenshot covered, for check.py when a
+        // pull request replaces that image.
+        const shot = page.locator(".shot img");
+        if (tab === "about") {
+          await page.screenshot({ path: path.join(out, `${engine}-${size}-about-masked.png`), mask: [shot] });
+        }
         report[`${size}-${tab}`] = await page.evaluate(() => {
           const side = document.querySelector(".side").getBoundingClientRect();
           const main = document.querySelector("main").getBoundingClientRect();
@@ -56,6 +65,20 @@ server.listen(0, async () => {
             tabs: [...document.querySelectorAll(".os-tab")].map((t) => t.textContent.trim()),
           };
         });
+        if (tab === "about") {
+          const src = (await shot.getAttribute("src")) || "";
+          report["shotImage"] = crypto.createHash("sha256").update(src).digest("hex");
+          // The "What a matchup looks like" section, from its heading to the caption.
+          await shot.scrollIntoViewIfNeeded();
+          await page.waitForFunction(() => document.querySelector(".shot img").complete);
+          const clip = await page.evaluate(() => {
+            const fig = document.querySelector(".shot");
+            const top = fig.previousElementSibling.getBoundingClientRect().top + window.scrollY - 16;
+            const bottom = fig.nextElementSibling.getBoundingClientRect().bottom + window.scrollY + 16;
+            return { x: 0, y: top, width: document.documentElement.clientWidth, height: bottom - top };
+          });
+          await page.screenshot({ path: path.join(out, `${engine}-${size}-about-matchup.png`), fullPage: true, clip });
+        }
       }
       await context.close();
     }
