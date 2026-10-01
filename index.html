@@ -51,6 +51,10 @@ document.documentElement.setAttribute('data-palette', ['green', 'mixed', 'purple
      the places this page sets up (only while SITE.ads is 'on'). Keep Auto ads
      off in AdSense, or Google puts ads anywhere on the page. -->
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5955475673265987" crossorigin="anonymous"></script>
+<!-- Cloudflare Web Analytics. Counts visits and page views, with no
+     cookies. "spa" makes it count each page switch (About, Download, ...) as
+     a page view too. Not in the web app (/app/). -->
+<!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "08db34b45c0246df9890e623d7ee85f2", "spa": true}'></script><!-- End Cloudflare Web Analytics -->
 <style>
   /* Fonts are built into this file, so loading them makes no requests to
      Google or anyone else. Cinzel, Oswald and Inter, all SIL Open Font License. */
@@ -903,6 +907,7 @@ document.documentElement.setAttribute('data-palette', ['green', 'mixed', 'purple
 
         <h2>Where it's kept</h2>
         <p>Accounts, profiles and ratings are stored with Supabase on servers in the EU, and emails are sent through Resend. The site runs on GitHub Pages, which logs visitor IP addresses for security, like any web host.</p>
+        <p>To count visits, the site uses Cloudflare Web Analytics. It uses no cookies and doesn't track individual visitors. It only counts things like page views, which pages are visited, the country and the type of browser.</p>
         <p>All traffic to the site and the database is encrypted (HTTPS), and the database only lets each account see its own details. Nobody but the site's admin can open the database itself.</p>
         <p>Messages from the contact form are emailed to us through Resend so we can reply. The site itself keeps no copy, only a scrambled version of your IP address for two days, to stop spam. Tips go through Ko-fi, under its own privacy policy.</p>
         <p>The site sets no cookies of its own. Google's ads do, see Ads below. Signing in saves a login token in your browser, and signing out removes it.</p>
@@ -1223,7 +1228,10 @@ function showAds(name) {
 
 /* ---------------- Navigation ---------------- */
 const pages = ['about','download','profiles','privacy'];
-function show(name){
+// fromNav: a sidebar button was clicked. That switch gets its own history
+// entry (pushState), like a #link does, so Back returns to the last page and
+// Cloudflare Web Analytics counts it as a page view.
+function show(name, fromNav){
   if(!pages.includes(name)) name='about';
   pages.forEach(p=>{
     document.getElementById('page-'+p).classList.toggle('active', p===name);
@@ -1233,13 +1241,13 @@ function show(name){
     if(on) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current');
   });
   // Some sandboxed previews refuse address changes; the page works without it.
-  if(location.hash.slice(1)!==name){ try{ history.replaceState(null,'','#'+name); }catch(e){} }
+  if(location.hash.slice(1)!==name){ try{ history[fromNav?'pushState':'replaceState'](null,'','#'+name); }catch(e){} }
   document.querySelector('main').scrollTo?.(0,0);
   window.scrollTo(0,0);
   showAds(name);
 }
 document.querySelectorAll('.navitem').forEach(b=>{
-  b.addEventListener('click',()=>show(b.dataset.nav));
+  b.addEventListener('click',()=>show(b.dataset.nav, true));
 });
 window.addEventListener('hashchange',()=>show(location.hash.slice(1)));
 

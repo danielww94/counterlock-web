@@ -17,6 +17,8 @@
   no ads. No script errors either way.
 - /privacy/ (the privacy policy address for AdSense) lands on the Privacy &
   rules page, with its title on screen.
+- Cloudflare Web Analytics loads on every page (a stand-in, see shots.cjs),
+  and counts the sidebar buttons, a #link and Back as page views.
 """
 
 import json
@@ -55,6 +57,8 @@ for report_file in sorted(after.glob("*-report.json")):
             problems.append(f"{engine} {key}: ads are off, but the page asked for {others}")
         if script not in view["adRequests"]:
             problems.append(f"{engine} {key}: Google's AdSense script for {view['adsPublisher']} is missing (Google needs it to check the site)")
+        if not view.get("analytics"):
+            problems.append(f"{engine} {key}: Cloudflare Web Analytics didn't load")
     print(f"{engine} ads off: ad files asked for: {report['pc-about'].get('adRequests')}")
     # getcounterlock.com/privacy/ lands on the Privacy & rules page.
     for size in ("phone", "pc"):
@@ -63,6 +67,13 @@ for report_file in sorted(after.glob("*-report.json")):
         top = pa.get("titleTop")
         if pa.get("landedOn") != "/#privacy" or not pa.get("privacyShown") or top is None or not 0 <= top < pa["viewportHeight"]:
             problems.append(f"{engine} {size}: /privacy/ doesn't land on the Privacy & rules page ({pa})")
+    # Page switches Cloudflare Web Analytics counts: Download and Counter
+    # Profiles (sidebar buttons), Privacy (a #link), then Back to Profiles.
+    for size in ("phone", "pc"):
+        an = report.get(f"{size}-analytics", {})
+        print(f"{engine} {size} analytics page views: {json.dumps(an)}")
+        if an.get("views") != ["#download", "#profiles", "#privacy", "#profiles"] or an.get("shownAfterBack") != "page-profiles":
+            problems.append(f"{engine} {size}: page switches aren't counted as page views, or Back doesn't work ({an})")
     # The ad positions with ads switched on.
     for size in ("phone", "pc"):
         on = report.get(f"{size}-adsOn", {})

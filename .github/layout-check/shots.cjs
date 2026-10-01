@@ -18,6 +18,10 @@
 // size before and after an ad of that size "loads", whether it's in a form,
 // and how far away the nearest button or link button is.
 //
+// It also notes whether the page asks for Cloudflare Web Analytics, and
+// with a stand-in for it (the real one can't be reached, and would count the
+// test as a visit) which page switches it would count as page views.
+//
 // Last, it opens /privacy/ (the address AdSense uses for the privacy policy)
 // and notes where that lands.
 
@@ -36,6 +40,20 @@ function withAds(html, mode) {
   html = html.replace(/(\n\s*ads:\s*)'[a-z-]*'/, `$1'${mode}'`);
   if (mode === "on") html = html.replace(/(adSlots:\s*\{)([^}]*)\}/, (m, a, b) => a + b.replace(/''/g, "'1234567890'") + "}");
   return html;
+}
+
+// Stands in for Cloudflare's beacon.min.js. Like the real one, it counts a
+// page view on load, on history.pushState and on popstate (Back, Forward,
+// #links), and notes the page's address each time.
+const FAKE_BEACON = `(() => {
+  const views = window.__cfViews = [location.hash];
+  const push = history.pushState;
+  history.pushState = function () { const r = push.apply(this, arguments); views.push(location.hash); return r; };
+  addEventListener('popstate', () => views.push(location.hash));
+})();`;
+async function fakeBeacon(context) {
+  await context.route(/^https:\/\/static\.cloudflareinsights\.com\/beacon\.min\.js/, (route) =>
+    route.fulfill({ contentType: "text/javascript", body: FAKE_BEACON }));
 }
 
 const server = http.createServer((req, res) => {
@@ -105,6 +123,7 @@ server.listen(0, async () => {
     for (const [size, options] of Object.entries(SIZES)) {
       const context = await browser.newContext({ ...options, reducedMotion: "reduce" });
       await context.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.abort());
+      await fakeBeacon(context);
       const page = await context.newPage();
       // Every request to Google's ad servers (they are blocked, like all
       // outside requests, but still show what the page tried to load).
@@ -134,6 +153,7 @@ server.listen(0, async () => {
             tabs: [...document.querySelectorAll(".os-tab")].map((t) => t.textContent.trim()),
             adsSetting: typeof SITE === "object" ? SITE.ads ?? null : null,
             adsPublisher: typeof SITE === "object" ? SITE.adsPublisher ?? null : null,
+            analytics: !!window.__cfViews,
             visibleAds: [...document.querySelectorAll("ins.adsbygoogle, .ad-slot, iframe[src*='googlesyndication'], iframe[id^='aswift']")]
               .filter((el) => el.getClientRects().length > 0).length,
           };
@@ -156,6 +176,22 @@ server.listen(0, async () => {
       }
       report[`${size}-pageErrors`] = pageErrors;
 
+      // Page switches the analytics counts: sidebar buttons, a #link, Back.
+      await page.goto(`${url}?ads=off#about`);
+      await page.waitForTimeout(500);
+      if (await page.evaluate(() => !!window.__cfViews && (window.__cfViews.length = 0, true))) {
+        await page.click('.navitem[data-nav="download"]');
+        await page.click('.navitem[data-nav="profiles"]');
+        await page.click('.side a[href="#privacy"]');
+        await page.waitForTimeout(300);
+        await page.goBack();
+        await page.waitForTimeout(300);
+        report[`${size}-analytics`] = await page.evaluate(() => ({
+          views: window.__cfViews,
+          shownAfterBack: document.querySelector(".page.active").id,
+        }));
+      }
+
       // getcounterlock.com/privacy/ must land on the Privacy & rules page.
       const landing = await context.newPage();
       await landing.goto(`${url}privacy/`);
@@ -176,6 +212,7 @@ server.listen(0, async () => {
       // The ad positions, with ads switched on.
       const adsContext = await browser.newContext({ ...options, reducedMotion: "reduce" });
       await adsContext.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.abort());
+      await fakeBeacon(adsContext);
       const adsPage = await adsContext.newPage();
       const adsErrors = [];
       adsPage.on("pageerror", (e) => adsErrors.push(String(e)));

@@ -16,6 +16,10 @@
 #     Download one only shows once a system is picked.
 #   - getcounterlock.com/privacy/ (the privacy policy address for AdSense)
 #     lands on the Privacy & rules page.
+#   - Cloudflare Web Analytics loads on every page (a stand-in for it, so
+#     the test isn't counted as a visit), all the ad checks above still pass
+#     with it, and page switches (sidebar buttons, #links, Back) count as
+#     page views.
 #
 # Before and after screenshots (About, Download, Counter Profiles, Privacy)
 # from both engines are kept under the run's "Artifacts" for 14 days. The scripts are in .github/layout-check/. None of
