@@ -218,8 +218,10 @@ server.listen(0, async () => {
         report[`${size}-analytics`] = await page.evaluate(() => ({ views: window.__cfViews }));
         report[`${size}-analytics`].afterBack = shownAfterBack;
         report[`${size}-analytics`].afterForward = await page.evaluate(whereAmI);
-        // Reloading keeps the page.
-        await page.reload();
+        // Reloading keeps the page: load the same address again. (Not
+        // page.reload(): WebKit's Playwright build crashed on it here, even
+        // on the base branch's site.)
+        await page.goto(page.url());
         await page.waitForTimeout(500);
         report[`${size}-analytics`].afterReload = await page.evaluate(whereAmI);
       }
