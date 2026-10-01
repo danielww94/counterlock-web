@@ -1,5 +1,6 @@
 # Checks the site's layout in Chromium and WebKit (Safari's engine) when a
-# pull request changes index.html, by comparing it with the base branch:
+# pull request changes index.html or privacy/, by comparing it with the base
+# branch:
 #
 #   - Phone (iPhone 15, 393x852): the page content starts right after the
 #     sidebar, instead of a screen-tall sidebar with empty space.
@@ -13,6 +14,8 @@
 #     250 px for the ad (the page doesn't jump when it loads), sit outside
 #     forms, and are at least 150 px from any button or download link. The
 #     Download one only shows once a system is picked.
+#   - getcounterlock.com/privacy/ (the privacy policy address for AdSense)
+#     lands on the Privacy & rules page.
 #
 # Before and after screenshots (About, Download, Counter Profiles, Privacy)
 # from both engines are kept under the run's "Artifacts" for 14 days. The scripts are in .github/layout-check/. None of
@@ -23,6 +26,7 @@ on:
   pull_request:
     paths:
       - index.html
+      - privacy/**
       - .github/layout-check/**
       - .github/workflows/layout-check.yml
   workflow_dispatch:

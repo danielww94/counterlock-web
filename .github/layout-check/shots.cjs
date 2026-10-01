@@ -17,6 +17,9 @@
 // which is exactly the space kept for the ad. It notes where each box is, its
 // size before and after an ad of that size "loads", whether it's in a form,
 // and how far away the nearest button or link button is.
+//
+// Last, it opens /privacy/ (the address AdSense uses for the privacy policy)
+// and notes where that lands.
 
 const crypto = require("crypto");
 const http = require("http");
@@ -152,6 +155,22 @@ server.listen(0, async () => {
         }
       }
       report[`${size}-pageErrors`] = pageErrors;
+
+      // getcounterlock.com/privacy/ must land on the Privacy & rules page.
+      const landing = await context.newPage();
+      await landing.goto(`${url}privacy/`);
+      await landing.waitForURL(/#privacy$/, { timeout: 5000 }).catch(() => {});
+      await landing.waitForTimeout(800);
+      report[`${size}-privacyAddress`] = await landing.evaluate(() => {
+        const title = document.querySelector("#t-privacy");
+        return {
+          landedOn: location.pathname + location.hash,
+          privacyShown: !!document.querySelector("#page-privacy.active"),
+          titleTop: title ? Math.round(title.getBoundingClientRect().top) : null,
+          viewportHeight: window.innerHeight,
+        };
+      });
+      await landing.screenshot({ path: path.join(out, `${engine}-${size}-privacy-address.png`) });
       await context.close();
 
       // The ad positions, with ads switched on.
