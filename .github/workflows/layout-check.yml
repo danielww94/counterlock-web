@@ -1,6 +1,7 @@
 # Checks the site's layout in Chromium and WebKit (Safari's engine) when a
-# pull request changes index.html or privacy/, by comparing it with the base
-# branch:
+# pull request changes index.html or how the site is put together, by
+# comparing it with the base branch. Both are put together the way
+# deploy-site.yml publishes them (.github/build-site.sh):
 #
 #   - Phone (iPhone 15, 393x852): the page content starts right after the
 #     sidebar, instead of a screen-tall sidebar with empty space.
@@ -14,12 +15,15 @@
 #     250 px for the ad (the page doesn't jump when it loads), sit outside
 #     forms, and are at least 150 px from any button or download link. The
 #     Download one only shows once a system is picked.
+#   - Every page has its own address (/, /download/, /profiles/, /privacy/)
+#     and title. Opening or reloading one shows that page, and old links
+#     (/#download and so on) land on the new address.
 #   - getcounterlock.com/privacy/ (the privacy policy address for AdSense)
-#     lands on the Privacy & rules page.
+#     is the Privacy & rules page.
 #   - Cloudflare Web Analytics loads on every page (a stand-in for it, so
 #     the test isn't counted as a visit), all the ad checks above still pass
-#     with it, and page switches (sidebar buttons, #links, Back) count as
-#     page views.
+#     with it, and page switches (sidebar buttons, links, Back, Forward)
+#     count as page views, each under its page's address.
 #
 # Before and after screenshots (About, Download, Counter Profiles, Privacy)
 # from both engines are kept under the run's "Artifacts" for 14 days. The scripts are in .github/layout-check/. None of
@@ -30,7 +34,7 @@ on:
   pull_request:
     paths:
       - index.html
-      - privacy/**
+      - .github/build-site.sh
       - .github/layout-check/**
       - .github/workflows/layout-check.yml
   workflow_dispatch:
@@ -78,13 +82,17 @@ jobs:
           npm install -g playwright@1.56
           playwright install --with-deps chromium webkit
           sudo chown -R "$USER" ~/apt-debs
+      - name: Both sites as they'd be published
+        run: |
+          bash after/.github/build-site.sh before site-before
+          bash after/.github/build-site.sh after site-after
       - name: Screenshots and checks
         timeout-minutes: 5
         run: |
           export NODE_PATH="$(npm root -g)"
           for engine in chromium webkit; do
-            node after/.github/layout-check/shots.cjs "$PWD/before" "$PWD/shots/before" "$engine"
-            node after/.github/layout-check/shots.cjs "$PWD/after" "$PWD/shots/after" "$engine"
+            node after/.github/layout-check/shots.cjs "$PWD/site-before" "$PWD/shots/before" "$engine"
+            node after/.github/layout-check/shots.cjs "$PWD/site-after" "$PWD/shots/after" "$engine"
           done
           python after/.github/layout-check/check.py shots/before shots/after
       - uses: actions/upload-artifact@v6

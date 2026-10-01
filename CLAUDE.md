@@ -27,7 +27,13 @@ hand in short numbered steps.
   here; change the source in the private repo instead.
 - Pages publishes through that workflow (Settings > Pages > Source: GitHub
   Actions), so the site is exactly the repo's files (minus `.github`,
-  `README.md`, `CLAUDE.md`) plus `app/`.
+  `README.md`, `CLAUDE.md`) plus `app/`, put together by
+  `.github/build-site.sh`.
+- Every page has its own address (`/`, `/download/`, `/profiles/`,
+  `/privacy/`), so Cloudflare Web Analytics counts them apart. The folders are
+  copies of `index.html` made by `build-site.sh` at deploy time; never commit
+  them. Links between pages use those paths, not `#links` (old `#links` still
+  land on the new address). AdSense's consent message links to `/privacy/`.
 - Pages publishes a given commit only once: deploying the same commit again
   reports success but keeps the old files. So on a release or "Run workflow",
   `deploy-site.yml` first commits `.github/live-release.txt` to `main` and

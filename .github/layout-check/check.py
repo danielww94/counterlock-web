@@ -15,16 +15,24 @@
   doesn't change size when the ad loads, isn't in a form, and is at least
   150 px from any button or download link. Counter Profiles and Privacy show
   no ads. No script errors either way.
-- /privacy/ (the privacy policy address for AdSense) lands on the Privacy &
-  rules page, with its title on screen.
+- Every page has its own address (/, /download/, /profiles/, /privacy/) and
+  its own title, opening that address directly shows that page, and so does
+  reloading it. Old links (/#download and so on) land on the new address.
+- /privacy/ (the privacy policy address for AdSense) is the Privacy & rules
+  page, with its title on screen.
 - Cloudflare Web Analytics loads on every page (a stand-in, see shots.cjs),
-  and counts the sidebar buttons, a #link and Back as page views.
+  and counts the sidebar buttons, the Privacy & rules link, Back and Forward
+  as page views, each under the page's own address.
 """
 
 import json
 import sys
 
 MIN_GAP = 150  # px between an ad and the nearest button or download link
+PATHS = {"about": "/", "download": "/download/", "profiles": "/profiles/", "privacy": "/privacy/"}
+# Old link (shots.cjs opens it afresh) -> the page it must land on.
+OLD_LINKS = {"#about": "about", "#download": "download", "#profiles": "profiles", "#privacy": "privacy",
+             "privacy/#privacy": "privacy", "download/#profiles": "profiles", "typed": "download"}
 from pathlib import Path
 
 from PIL import Image, ImageChops
@@ -60,20 +68,43 @@ for report_file in sorted(after.glob("*-report.json")):
         if not view.get("analytics"):
             problems.append(f"{engine} {key}: Cloudflare Web Analytics didn't load")
     print(f"{engine} ads off: ad files asked for: {report['pc-about'].get('adRequests')}")
-    # getcounterlock.com/privacy/ lands on the Privacy & rules page.
     for size in ("phone", "pc"):
+        # Each page opened by its own address shows there, with its own title.
+        titles = {tab: report[f"{size}-{tab}"].get("title") for tab in PATHS}
+        print(f"{engine} {size} titles: {json.dumps(titles)}")
+        for tab, path in PATHS.items():
+            if report[f"{size}-{tab}"].get("address") != path:
+                problems.append(f"{engine} {size} {tab}: opening {path} ends up at {report[f'{size}-{tab}'].get('address')}")
+        if len(set(titles.values())) != len(PATHS) or not all(titles.values()):
+            problems.append(f"{engine} {size}: the pages don't each have their own title ({titles})")
+
+        def lands(view, tab):
+            return (view or {}).get("path") == PATHS[tab] and not view.get("hash") \
+                and view.get("shown") == f"page-{tab}" and view.get("title") == titles[tab]
+
+        # getcounterlock.com/privacy/ is the Privacy & rules page.
         pa = report.get(f"{size}-privacyAddress", {})
         print(f"{engine} {size} /privacy/: {json.dumps(pa)}")
         top = pa.get("titleTop")
-        if pa.get("landedOn") != "/#privacy" or not pa.get("privacyShown") or top is None or not 0 <= top < pa["viewportHeight"]:
-            problems.append(f"{engine} {size}: /privacy/ doesn't land on the Privacy & rules page ({pa})")
-    # Page switches Cloudflare Web Analytics counts: Download and Counter
-    # Profiles (sidebar buttons), Privacy (a #link), then Back to Profiles.
-    for size in ("phone", "pc"):
+        if pa.get("landedOn") != "/privacy/" or pa.get("pageTitle") != titles["privacy"] or not pa.get("privacyShown") \
+                or top is None or not 0 <= top < pa["viewportHeight"]:
+            problems.append(f"{engine} {size}: /privacy/ isn't the Privacy & rules page ({pa})")
+        # Old #links land on the new addresses.
+        old = report.get(f"{size}-oldLinks", {})
+        for link, tab in OLD_LINKS.items():
+            print(f"{engine} {size} old link {link}: {json.dumps(old.get(link))}")
+            if not lands(old.get(link), tab):
+                problems.append(f"{engine} {size}: the old link {link} doesn't land on {PATHS[tab]} ({old.get(link)})")
+        # Page switches Cloudflare Web Analytics counts: Download and Counter
+        # Profiles (sidebar buttons), Privacy (its link), Back to Profiles,
+        # Forward to Privacy. Then a reload stays on Privacy.
         an = report.get(f"{size}-analytics", {})
         print(f"{engine} {size} analytics page views: {json.dumps(an)}")
-        if an.get("views") != ["#download", "#profiles", "#privacy", "#profiles"] or an.get("shownAfterBack") != "page-profiles":
-            problems.append(f"{engine} {size}: page switches aren't counted as page views, or Back doesn't work ({an})")
+        if an.get("views") != ["/download/", "/profiles/", "/privacy/", "/profiles/", "/privacy/"]:
+            problems.append(f"{engine} {size}: page switches aren't each counted as a page view of their own address ({an.get('views')})")
+        for step, tab in (("afterBack", "profiles"), ("afterForward", "privacy"), ("afterReload", "privacy")):
+            if not lands(an.get(step), tab):
+                problems.append(f"{engine} {size}: {step} should show {PATHS[tab]} ({an.get(step)})")
     # The ad positions with ads switched on.
     for size in ("phone", "pc"):
         on = report.get(f"{size}-adsOn", {})

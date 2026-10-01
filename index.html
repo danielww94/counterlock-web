@@ -46,14 +46,15 @@ document.documentElement.setAttribute('data-palette', ['green', 'mixed', 'purple
 <title>Counterlock · Counter items for Deadlock</title>
 <meta name="description" content="Counterlock is a companion for Deadlock, for Windows, Linux and your browser. Pick the hero you're up against and see the counter items to buy." />
 <meta name="theme-color" content="#0a0713" />
-<link rel="icon" href="favicon.ico" sizes="any" />
+<link rel="icon" href="/favicon.ico" sizes="any" />
 <!-- Google AdSense. Lets Google check the site, and later serves the ads in
      the places this page sets up (only while SITE.ads is 'on'). Keep Auto ads
      off in AdSense, or Google puts ads anywhere on the page. -->
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5955475673265987" crossorigin="anonymous"></script>
 <!-- Cloudflare Web Analytics. Counts visits and page views, with no
-     cookies. "spa" makes it count each page switch (About, Download, ...) as
-     a page view too. Not in the web app (/app/). -->
+     cookies. Each page has its own address (/, /download/, /profiles/,
+     /privacy/), and "spa" makes it count each page switch as a page view
+     too. The web app (/app/) loads its own copy. -->
 <!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "08db34b45c0246df9890e623d7ee85f2", "spa": true}'></script><!-- End Cloudflare Web Analytics -->
 <style>
   /* Fonts are built into this file, so loading them makes no requests to
@@ -702,8 +703,8 @@ document.documentElement.setAttribute('data-palette', ['green', 'mixed', 'purple
       </a>
       <div class="fan">Fan-made. Not affiliated with Valve.</div>
       <div class="sidelinks">
-        <a href="#about" data-jump="help">Help &amp; feedback</a>
-        <a href="#privacy">Privacy &amp; rules</a>
+        <a href="/" data-jump="help">Help &amp; feedback</a>
+        <a href="/privacy/">Privacy &amp; rules</a>
       </div>
     </div>
   </aside>
@@ -739,7 +740,7 @@ document.documentElement.setAttribute('data-palette', ['green', 'mixed', 'purple
         <li>Add tips for the hero you play into that matchup. Leave blank anything you don't have.</li>
         <li>Click <b>Save</b>, or <b>Save as</b> to keep it as a new profile. The app loads your changes straight away.</li>
       </ol>
-      <p style="font-size:15px;margin:2px 0 0">Using a profile someone else made? Download one from <a class="inline-link" href="#profiles">Counter Profiles</a>, then open <b>Settings</b> and <b>Load from file</b>.</p>
+      <p style="font-size:15px;margin:2px 0 0">Using a profile someone else made? Download one from <a class="inline-link" href="/profiles/">Counter Profiles</a>, then open <b>Settings</b> and <b>Load from file</b>.</p>
       <div class="callout">Prefer a text editor? The profile is a simple <code>.xml</code> file. Edit it in anything you like and Counterlock re-reads it every time it starts. Keep a backup before big changes.</div>
 
       <h2 class="sec" id="help">Help, feedback &amp; bugs</h2>
@@ -839,7 +840,7 @@ document.documentElement.setAttribute('data-palette', ['green', 'mixed', 'purple
 
       <div class="os-panel" id="osWeb" hidden>
         <div class="dl-row">
-          <a class="dl" id="openWeb" href="app/" aria-label="Open Counterlock in your browser">
+          <a class="dl" id="openWeb" href="/app/" aria-label="Open Counterlock in your browser">
             <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.2" aria-hidden="true"><circle cx="24" cy="24" r="19"/><path d="M5 24h38M24 5c5.2 5.2 7.8 11.5 7.8 19S29.2 37.8 24 43c-5.2-5.2-7.8-11.5-7.8-19S18.8 10.2 24 5Z"/></svg>
             <span>
               <span class="os">Open in your browser</span>
@@ -864,7 +865,7 @@ document.documentElement.setAttribute('data-palette', ['green', 'mixed', 'purple
 
       <div class="soon" id="profilesSoon">
         <div class="soon-label">Opening soon</div>
-        <p>The shared library isn't open yet. Until it is, Counterlock ships with a full profile covering every hero, and you can change anything in it with the editor. <a href="#about" id="toEdit">See how editing works</a>.</p>
+        <p>The shared library isn't open yet. Until it is, Counterlock ships with a full profile covering every hero, and you can change anything in it with the editor. <a href="/" id="toEdit">See how editing works</a>.</p>
       </div>
 
       <div id="profilesBoard" hidden>
@@ -891,7 +892,7 @@ document.documentElement.setAttribute('data-palette', ['green', 'mixed', 'purple
         <p class="board-msg" id="boardMsg" role="status"></p>
         <div class="grid" id="grid"></div>
         <div class="more-wrap"><button class="btn" id="moreBtn" type="button" hidden>Show more</button></div>
-        <p class="board-foot">Downloaded a profile? In Counterlock, open <b>Settings</b>, then <b>Load from file</b>. Made your own? Upload its <code>.xml</code> file here, and use <b>Update</b> on its card when you improve it. Uploads follow the <a class="inline-link" href="#privacy">community rules</a>.</p>
+        <p class="board-foot">Downloaded a profile? In Counterlock, open <b>Settings</b>, then <b>Load from file</b>. Made your own? Upload its <code>.xml</code> file here, and use <b>Update</b> on its card when you improve it. Uploads follow the <a class="inline-link" href="/privacy/">community rules</a>.</p>
       </div>
     </section>
 
@@ -907,7 +908,7 @@ document.documentElement.setAttribute('data-palette', ['green', 'mixed', 'purple
 
         <h2>Where it's kept</h2>
         <p>Accounts, profiles and ratings are stored with Supabase on servers in the EU, and emails are sent through Resend. The site runs on GitHub Pages, which logs visitor IP addresses for security, like any web host.</p>
-        <p>To count visits, the site uses Cloudflare Web Analytics. It uses no cookies and doesn't track individual visitors. It only counts things like page views, which pages are visited, the country and the type of browser.</p>
+        <p>To count visits, the site and the web app use Cloudflare Web Analytics. It uses no cookies and doesn't track individual visitors. It only counts things like page views, which pages are visited, the country and the type of browser.</p>
         <p>All traffic to the site and the database is encrypted (HTTPS), and the database only lets each account see its own details. Nobody but the site's admin can open the database itself.</p>
         <p>Messages from the contact form are emailed to us through Resend so we can reply. The site itself keeps no copy, only a scrambled version of your IP address for two days, to stop spam. Tips go through Ko-fi, under its own privacy policy.</p>
         <p>The site sets no cookies of its own. Google's ads do, see Ads below. Signing in saves a login token in your browser, and signing out removes it.</p>
@@ -916,7 +917,7 @@ document.documentElement.setAttribute('data-palette', ['green', 'mixed', 'purple
         <p>Some pages on this site show ads from Google (Google AdSense). The web app at getcounterlock.com/app has no ads.</p>
         <p>Google and its partners use cookies to show these ads, to count views and clicks, and to stop fraud. With your consent, the ads can be based on your visits to this site and other sites. Without it, you still see ads, just not personalised ones.</p>
         <p>Visitors in the EU, the EEA, the UK and Switzerland are asked first, in a box from Google. You can accept, refuse, or choose what to allow.</p>
-        <p>To change your choice, open <a href="#privacy" id="adConsent">Privacy and cookie settings</a>. You can also turn off personalised ads in <a href="https://myadcenter.google.com/" target="_blank" rel="noopener noreferrer">Google's My Ad Center</a>, and read <a href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noopener noreferrer">how Google uses data from sites like this one</a>.</p>
+        <p>To change your choice, open <a href="/privacy/" id="adConsent">Privacy and cookie settings</a>. You can also turn off personalised ads in <a href="https://myadcenter.google.com/" target="_blank" rel="noopener noreferrer">Google's My Ad Center</a>, and read <a href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noopener noreferrer">how Google uses data from sites like this one</a>.</p>
 
         <h2>How long</h2>
         <p>Until you delete your account (Account, then Delete account). Everything is removed right away, except your username: it stays reserved for 6 months so nobody can pretend to be you. Unconfirmed signups are removed after 3 days, and sign-in counters within a day.</p>
@@ -976,7 +977,7 @@ document.documentElement.setAttribute('data-palette', ['green', 'mixed', 'purple
       <input type="password" name="password" autocomplete="new-password" minlength="8" required />
       <span class="hint">At least 8 characters.</span>
     </label>
-    <label class="check"><input type="checkbox" name="agree" /> <span>I'm 13 or older and accept the <a href="#privacy" data-close>rules and privacy notice</a>.</span></label>
+    <label class="check"><input type="checkbox" name="agree" /> <span>I'm 13 or older and accept the <a href="/privacy/" data-close>rules and privacy notice</a>.</span></label>
     <p class="dlg-msg" role="alert"></p>
     <div class="dlg-actions">
       <button type="submit" class="btn primary">Create account</button>
@@ -1125,7 +1126,7 @@ document.documentElement.setAttribute('data-palette', ['green', 'mixed', 'purple
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <!-- Supabase client library (supabase-js 2.117.1, MIT licence), hosted with the site. -->
-<script src="supabase.js"></script>
+<script src="/supabase.js"></script>
 <script>
 /* =========================================================================
    Counterlock site. Vanilla JS, no build step, easy to edit by hand.
@@ -1227,12 +1228,31 @@ function showAds(name) {
 }
 
 /* ---------------- Navigation ---------------- */
+// Every page has its own address, so Cloudflare Web Analytics (which ignores
+// #...) counts them apart. deploy-site.yml puts a copy of this file in each
+// folder. Old #links (/#download and so on) move to the new address.
 const pages = ['about','download','profiles','privacy'];
-// fromNav: a sidebar button was clicked. That switch gets its own history
-// entry (pushState), like a #link does, so Back returns to the last page and
-// Cloudflare Web Analytics counts it as a page view.
+const pagePath = { about:'/', download:'/download/', profiles:'/profiles/', privacy:'/privacy/' };
+const pageTitle = {
+  about:    document.title,
+  download: 'Download · Counterlock',
+  profiles: 'Counter Profiles · Counterlock',
+  privacy:  'Privacy & rules · Counterlock',
+};
+let shown = '';
+// The page the address asks for: an old #link first, then the path.
+function pageAt(){
+  const h = location.hash.slice(1);
+  if(pages.includes(h)) return h;
+  const path = location.pathname.replace(/index\.html$/,'').replace(/\/?$/,'/');
+  return pages.find(p=>pagePath[p]===path) || 'about';
+}
+// fromNav: a sidebar button or a link was clicked. That switch gets its own
+// history entry (pushState), so Back returns to the last page and Cloudflare
+// Web Analytics counts it as a page view.
 function show(name, fromNav){
   if(!pages.includes(name)) name='about';
+  shown = name;
   pages.forEach(p=>{
     document.getElementById('page-'+p).classList.toggle('active', p===name);
   });
@@ -1240,8 +1260,11 @@ function show(name, fromNav){
     const on = b.dataset.nav===name;
     if(on) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current');
   });
+  document.title = pageTitle[name];
   // Some sandboxed previews refuse address changes; the page works without it.
-  if(location.hash.slice(1)!==name){ try{ history[fromNav?'pushState':'replaceState'](null,'','#'+name); }catch(e){} }
+  if(location.pathname!==pagePath[name] || pages.includes(location.hash.slice(1))){
+    try{ history[fromNav?'pushState':'replaceState'](null,'',pagePath[name]+(fromNav?'':location.search)); }catch(e){}
+  }
   document.querySelector('main').scrollTo?.(0,0);
   window.scrollTo(0,0);
   showAds(name);
@@ -1249,7 +1272,23 @@ function show(name, fromNav){
 document.querySelectorAll('.navitem').forEach(b=>{
   b.addEventListener('click',()=>show(b.dataset.nav, true));
 });
-window.addEventListener('hashchange',()=>show(location.hash.slice(1)));
+// Links to a page switch to it here, without loading the site again.
+document.addEventListener('click', e=>{
+  const a = e.target.closest('a[href]');
+  if(!a || e.defaultPrevented || a.getAttribute('href').startsWith('#') || a.hasAttribute('data-jump') || a.target || e.button || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+  const to = new URL(a.href, location.href);
+  const name = pages.find(p=>pagePath[p]===to.pathname);
+  if(to.origin!==location.origin || !name || to.hash) return;
+  e.preventDefault();
+  show(name, true);
+});
+// Back, Forward, and an old #link typed into the address bar.
+function followAddress(){
+  const name = pageAt();
+  if(name!==shown || pages.includes(location.hash.slice(1))) show(name);
+}
+window.addEventListener('popstate', followAddress);
+window.addEventListener('hashchange', followAddress);
 
 /* ---------------- Download: platform chooser ---------------- */
 (function(){
@@ -1264,7 +1303,7 @@ window.addEventListener('hashchange',()=>show(location.hash.slice(1)));
     showAds('download');
   }));
 })();
-show(location.hash.slice(1)||'about');
+show(pageAt());
 
 /* ---------------- Small helpers ---------------- */
 const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1328,8 +1367,8 @@ document.addEventListener('click', e => {
   if (opener) { e.preventDefault(); openDialog(opener.dataset.open); return; }
   const closer = e.target.closest('[data-close]');
   if (closer) {
-    // Buttons just close; a "#page" link inside a dialog closes it and then
-    // navigates normally (the hashchange handler shows the page).
+    // Buttons just close; a page link inside a dialog closes it and then
+    // opens that page (the link handler under Navigation).
     if (closer.tagName !== 'A') e.preventDefault();
     hideDlg(closer.closest('dialog'));
   }
@@ -1914,7 +1953,7 @@ function initLibrary() {
     const token_hash = p.get('token_hash');
     let type = p.get('type');
     if (!token_hash || !type) return;
-    try { history.replaceState(null, '', location.pathname + '#profiles'); } catch (e) { /* sandboxed preview */ }
+    try { history.replaceState(null, '', '/profiles/'); } catch (e) { /* sandboxed preview */ }
     show('profiles');
     if (type === 'signup') type = 'email';
     if (!['email', 'recovery', 'email_change'].includes(type)) return;
