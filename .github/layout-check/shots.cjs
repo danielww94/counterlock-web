@@ -202,43 +202,62 @@ server.listen(0, async () => {
       report[`${size}-pageErrors`] = pageErrors;
 
       // Page switches the analytics counts: sidebar buttons, the Privacy &
-      // rules link, Back, Forward.
-      await openPage(page, url, "about", "off");
-      await page.waitForTimeout(500);
-      if (await page.evaluate(() => !!window.__cfViews && (window.__cfViews.length = 0, true))) {
-        await page.click('.navitem[data-nav="download"]');
-        await page.click('.navitem[data-nav="profiles"]');
-        await page.click('.side .sidelinks a[href*="privacy"]');
-        await page.waitForTimeout(300);
-        await page.goBack();
-        await page.waitForTimeout(300);
-        const shownAfterBack = await page.evaluate(whereAmI);
-        await page.goForward();
-        await page.waitForTimeout(300);
-        report[`${size}-analytics`] = await page.evaluate(() => ({ views: window.__cfViews }));
-        report[`${size}-analytics`].afterBack = shownAfterBack;
-        report[`${size}-analytics`].afterForward = await page.evaluate(whereAmI);
-        // Reloading keeps the page: load the same address again. (Not
-        // page.reload(): WebKit's Playwright build crashed on it here, even
-        // on the base branch's site.)
-        await page.goto(page.url());
+      // rules link, Back, Forward. WebKit's Playwright build crashed a page
+      // here on the base branch's site (#links), so a crash is noted (and
+      // fails check.py for this pull request's site) instead of stopping the
+      // whole run, and the later checks each use a tab of their own.
+      const firstLine = (e) => String(e).split("\n")[0];
+      const an = (report[`${size}-analytics`] = {});
+      try {
+        await openPage(page, url, "about", "off");
         await page.waitForTimeout(500);
-        report[`${size}-analytics`].afterReload = await page.evaluate(whereAmI);
+        if (await page.evaluate(() => !!window.__cfViews && (window.__cfViews.length = 0, true))) {
+          await page.click('.navitem[data-nav="download"]');
+          await page.click('.navitem[data-nav="profiles"]');
+          await page.click('.side .sidelinks a[href*="privacy"]');
+          await page.waitForTimeout(300);
+          await page.goBack();
+          await page.waitForTimeout(300);
+          an.afterBack = await page.evaluate(whereAmI);
+          await page.goForward();
+          await page.waitForTimeout(300);
+          an.views = await page.evaluate(() => window.__cfViews);
+          an.afterForward = await page.evaluate(whereAmI);
+        }
+      } catch (e) {
+        an.error = firstLine(e);
+      }
+      // Reloading keeps the page: the address it ended on, loaded again.
+      try {
+        const again = await context.newPage();
+        await again.goto(an.afterForward ? `${url.replace(/\/$/, "")}${an.afterForward.path}${an.afterForward.hash}` : `${url}privacy/`);
+        await again.waitForTimeout(500);
+        an.afterReload = await again.evaluate(whereAmI);
+        await again.close();
+      } catch (e) {
+        an.reloadError = firstLine(e);
       }
 
       // Old links (/#download and so on), opened afresh like a bookmark, land
       // on the page's own address. So does one typed into the address bar.
       const old = {};
-      for (const link of ["#about", "#download", "#profiles", "#privacy", "privacy/#privacy", "download/#profiles"]) {
-        const [folder, hash] = link.split("#");
-        await page.goto("about:blank");
-        await page.goto(`${url}${folder}?ads=off#${hash}`);
-        await page.waitForTimeout(300);
-        old[link] = await page.evaluate(whereAmI);
+      for (const link of ["#about", "#download", "#profiles", "#privacy", "privacy/#privacy", "download/#profiles", "typed"]) {
+        const tab = await context.newPage();
+        try {
+          if (link === "typed") {
+            await tab.goto(`${url}?ads=off`);
+            await tab.evaluate(() => { location.hash = "#download"; });
+          } else {
+            const [folder, hash] = link.split("#");
+            await tab.goto(`${url}${folder}?ads=off#${hash}`);
+          }
+          await tab.waitForTimeout(300);
+          old[link] = await tab.evaluate(whereAmI);
+        } catch (e) {
+          old[link] = { error: firstLine(e) };
+        }
+        await tab.close().catch(() => {});
       }
-      await page.evaluate(() => { location.hash = "#download"; });
-      await page.waitForTimeout(300);
-      old.typed = await page.evaluate(whereAmI);
       report[`${size}-oldLinks`] = old;
 
       // getcounterlock.com/privacy/ must land on the Privacy & rules page.
