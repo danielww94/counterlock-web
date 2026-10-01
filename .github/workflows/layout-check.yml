@@ -6,9 +6,16 @@
 #   - PC (1440x900): the sidebar fills the window and the About page looks
 #     exactly as before, pixel for pixel (if the pull request replaces the
 #     app screenshot on About, everything except that image).
+#   - Ads off (all the checks above run like this): no page shows an ad, and
+#     the only ad file the page asks for is Google's AdSense script (Google
+#     checks the site with it).
+#   - Ads on, with made-up ad unit IDs: the About and Download ad boxes keep
+#     250 px for the ad (the page doesn't jump when it loads), sit outside
+#     forms, and are at least 150 px from any button or download link. The
+#     Download one only shows once a system is picked.
 #
-# Before and after screenshots from both engines are kept under the run's
-# "Artifacts" for 14 days. The scripts are in .github/layout-check/. None of
+# Before and after screenshots (About, Download, Counter Profiles, Privacy)
+# from both engines are kept under the run's "Artifacts" for 14 days. The scripts are in .github/layout-check/. None of
 # this is published: the site leaves out .github.
 name: Layout check
 
