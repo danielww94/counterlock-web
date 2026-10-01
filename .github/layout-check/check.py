@@ -15,6 +15,8 @@
   doesn't change size when the ad loads, isn't in a form, and is at least
   150 px from any button or download link. Counter Profiles and Privacy show
   no ads. No script errors either way.
+- /privacy/ (the privacy policy address for AdSense) lands on the Privacy &
+  rules page, with its title on screen.
 """
 
 import json
@@ -54,6 +56,13 @@ for report_file in sorted(after.glob("*-report.json")):
         if script not in view["adRequests"]:
             problems.append(f"{engine} {key}: Google's AdSense script for {view['adsPublisher']} is missing (Google needs it to check the site)")
     print(f"{engine} ads off: ad files asked for: {report['pc-about'].get('adRequests')}")
+    # getcounterlock.com/privacy/ lands on the Privacy & rules page.
+    for size in ("phone", "pc"):
+        pa = report.get(f"{size}-privacyAddress", {})
+        print(f"{engine} {size} /privacy/: {json.dumps(pa)}")
+        top = pa.get("titleTop")
+        if pa.get("landedOn") != "/#privacy" or not pa.get("privacyShown") or top is None or not 0 <= top < pa["viewportHeight"]:
+            problems.append(f"{engine} {size}: /privacy/ doesn't land on the Privacy & rules page ({pa})")
     # The ad positions with ads switched on.
     for size in ("phone", "pc"):
         on = report.get(f"{size}-adsOn", {})
