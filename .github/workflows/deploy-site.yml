@@ -1,7 +1,9 @@
 # Publishes getcounterlock.com with GitHub Pages.
 #
 # The site is this repo's files plus the web version of Counterlock at /app/,
-# unpacked from Counterlock-web.zip in the latest published release. Runs when
+# unpacked from Counterlock-web.zip in the latest published release. Each page
+# of the site gets its own address (/download/, /profiles/, /privacy/), as a
+# copy of index.html made by .github/build-site.sh. Runs when
 # you push to main, when you publish a release (so clicking "Publish release"
 # puts the new desktop downloads and the new web version live together), and
 # from the Actions tab ("Run workflow").
@@ -93,18 +95,9 @@ jobs:
 
       - name: Site files
         run: |
-          mkdir _site
-          # Everything in the repo except git and GitHub settings and the
-          # notes for developers (README.md, CLAUDE.md).
-          shopt -s dotglob
-          for item in *; do
-            case "$item" in
-              .git|.github|_site|README.md|CLAUDE.md) ;;
-              *) cp -r "$item" _site/ ;;
-            esac
-          done
-          # app/ is never taken from the repo, only from the release below.
-          rm -rf _site/app
+          # The repo's files, plus a copy of index.html as download/,
+          # profiles/ and privacy/ (see the script).
+          bash .github/build-site.sh . _site
           ls -la _site
 
       - name: Web version from the latest release

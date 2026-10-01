@@ -22,8 +22,15 @@
 // with a stand-in for it (the real one can't be reached, and would count the
 // test as a visit) which page switches it would count as page views.
 //
-// Last, it opens /privacy/ (the address AdSense uses for the privacy policy)
-// and notes where that lands.
+// Every page is opened by its own address (/, /download/, /profiles/,
+// /privacy/). <site folder> is the site as published (.github/build-site.sh
+// makes those folders). A site from before the pages had addresses (the base
+// branch of the pull request that added them) only knows #links, so there it
+// falls back to those.
+//
+// Last, it opens /privacy/ (the address AdSense uses for the privacy policy),
+// the old #links (/#download and so on), and reloads a page, and notes where
+// each lands and with which title.
 
 const crypto = require("crypto");
 const http = require("http");
@@ -32,6 +39,7 @@ const path = require("path");
 const playwright = require("playwright");
 
 const [root, out, engine] = process.argv.slice(2);
+const ADDRESS = { about: "", download: "download/", profiles: "profiles/", privacy: "privacy/" };
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".ico": "image/x-icon", ".css": "text/css" };
 
 // index.html with SITE.ads switched on or off, and on with made-up ad unit
@@ -46,10 +54,11 @@ function withAds(html, mode) {
 // page view on load, on history.pushState and on popstate (Back, Forward,
 // #links), and notes the page's address each time.
 const FAKE_BEACON = `(() => {
-  const views = window.__cfViews = [location.hash];
+  const at = () => location.pathname + location.hash;
+  const views = window.__cfViews = [at()];
   const push = history.pushState;
-  history.pushState = function () { const r = push.apply(this, arguments); views.push(location.hash); return r; };
-  addEventListener('popstate', () => views.push(location.hash));
+  history.pushState = function () { const r = push.apply(this, arguments); views.push(at()); return r; };
+  addEventListener('popstate', () => views.push(at()));
 })();`;
 async function fakeBeacon(context) {
   await context.route(/^https:\/\/static\.cloudflareinsights\.com\/beacon\.min\.js/, (route) =>
@@ -70,6 +79,20 @@ const server = http.createServer((req, res) => {
   if (ads && file.endsWith(".html")) res.end(withAds(fs.readFileSync(file, "utf8"), ads));
   else res.end(fs.readFileSync(file));
 });
+
+// Opens a page by its address, or by its #link on a site from before the
+// addresses (see the top).
+async function openPage(page, url, tab, ads) {
+  await page.goto(`${url}${ADDRESS[tab]}?ads=${ads}`);
+  const shown = await page.evaluate((t) => !!document.querySelector(`#page-${t}.active`), tab).catch(() => false);
+  if (!shown) await page.goto(`${url}?ads=${ads}#${tab}`);
+}
+
+// Run in the page: where it is, which page shows and its title.
+function whereAmI() {
+  const active = document.querySelector(".page.active");
+  return { path: location.pathname, hash: location.hash, shown: active ? active.id : null, title: document.title };
+}
 
 // Run in the page: the visible ad box on the current page, if any.
 function measureAd(name) {
@@ -134,7 +157,7 @@ server.listen(0, async () => {
       const pageErrors = [];
       page.on("pageerror", (e) => pageErrors.push(String(e)));
       for (const tab of ["about", "download", "profiles", "privacy"]) {
-        await page.goto(`${url}?ads=off#${tab}`);
+        await openPage(page, url, tab, "off");
         await page.waitForTimeout(800);
         await page.screenshot({ path: path.join(out, `${engine}-${size}-${tab}.png`) });
         // The same view with the app screenshot covered, for check.py when a
@@ -147,6 +170,8 @@ server.listen(0, async () => {
           const side = document.querySelector(".side").getBoundingClientRect();
           const main = document.querySelector("main").getBoundingClientRect();
           return {
+            address: location.pathname + location.hash,
+            title: document.title,
             sideHeight: Math.round(side.height),
             contentStartsAfterSidebar: Math.round(main.top - side.bottom),
             contentTop: Math.round(main.top + window.scrollY),
@@ -176,31 +201,74 @@ server.listen(0, async () => {
       }
       report[`${size}-pageErrors`] = pageErrors;
 
-      // Page switches the analytics counts: sidebar buttons, a #link, Back.
-      await page.goto(`${url}?ads=off#about`);
-      await page.waitForTimeout(500);
-      if (await page.evaluate(() => !!window.__cfViews && (window.__cfViews.length = 0, true))) {
-        await page.click('.navitem[data-nav="download"]');
-        await page.click('.navitem[data-nav="profiles"]');
-        await page.click('.side a[href="#privacy"]');
-        await page.waitForTimeout(300);
-        await page.goBack();
-        await page.waitForTimeout(300);
-        report[`${size}-analytics`] = await page.evaluate(() => ({
-          views: window.__cfViews,
-          shownAfterBack: document.querySelector(".page.active").id,
-        }));
+      // Page switches the analytics counts: sidebar buttons, the Privacy &
+      // rules link, Back, Forward. WebKit's Playwright build crashed a page
+      // here on the base branch's site (#links), so a crash is noted (and
+      // fails check.py for this pull request's site) instead of stopping the
+      // whole run, and the later checks each use a tab of their own.
+      const firstLine = (e) => String(e).split("\n")[0];
+      const an = (report[`${size}-analytics`] = {});
+      try {
+        await openPage(page, url, "about", "off");
+        await page.waitForTimeout(500);
+        if (await page.evaluate(() => !!window.__cfViews && (window.__cfViews.length = 0, true))) {
+          await page.click('.navitem[data-nav="download"]');
+          await page.click('.navitem[data-nav="profiles"]');
+          await page.click('.side .sidelinks a[href*="privacy"]');
+          await page.waitForTimeout(300);
+          await page.goBack();
+          await page.waitForTimeout(300);
+          an.afterBack = await page.evaluate(whereAmI);
+          await page.goForward();
+          await page.waitForTimeout(300);
+          an.views = await page.evaluate(() => window.__cfViews);
+          an.afterForward = await page.evaluate(whereAmI);
+        }
+      } catch (e) {
+        an.error = firstLine(e);
       }
+      // Reloading keeps the page: the address it ended on, loaded again.
+      try {
+        const again = await context.newPage();
+        await again.goto(an.afterForward ? `${url.replace(/\/$/, "")}${an.afterForward.path}${an.afterForward.hash}` : `${url}privacy/`);
+        await again.waitForTimeout(500);
+        an.afterReload = await again.evaluate(whereAmI);
+        await again.close();
+      } catch (e) {
+        an.reloadError = firstLine(e);
+      }
+
+      // Old links (/#download and so on), opened afresh like a bookmark, land
+      // on the page's own address. So does one typed into the address bar.
+      const old = {};
+      for (const link of ["#about", "#download", "#profiles", "#privacy", "privacy/#privacy", "download/#profiles", "typed"]) {
+        const tab = await context.newPage();
+        try {
+          if (link === "typed") {
+            await tab.goto(`${url}?ads=off`);
+            await tab.evaluate(() => { location.hash = "#download"; });
+          } else {
+            const [folder, hash] = link.split("#");
+            await tab.goto(`${url}${folder}?ads=off#${hash}`);
+          }
+          await tab.waitForTimeout(300);
+          old[link] = await tab.evaluate(whereAmI);
+        } catch (e) {
+          old[link] = { error: firstLine(e) };
+        }
+        await tab.close().catch(() => {});
+      }
+      report[`${size}-oldLinks`] = old;
 
       // getcounterlock.com/privacy/ must land on the Privacy & rules page.
       const landing = await context.newPage();
       await landing.goto(`${url}privacy/`);
-      await landing.waitForURL(/#privacy$/, { timeout: 5000 }).catch(() => {});
       await landing.waitForTimeout(800);
       report[`${size}-privacyAddress`] = await landing.evaluate(() => {
         const title = document.querySelector("#t-privacy");
         return {
           landedOn: location.pathname + location.hash,
+          pageTitle: document.title,
           privacyShown: !!document.querySelector("#page-privacy.active"),
           titleTop: title ? Math.round(title.getBoundingClientRect().top) : null,
           viewportHeight: window.innerHeight,
@@ -217,13 +285,13 @@ server.listen(0, async () => {
       const adsErrors = [];
       adsPage.on("pageerror", (e) => adsErrors.push(String(e)));
       const on = {};
-      await adsPage.goto(`${url}?ads=on#about`);
+      await openPage(adsPage, url, "about", "on");
       await adsPage.waitForTimeout(800);
       on.switchedOn = await adsPage.evaluate(() => typeof SITE === "object" && SITE.ads === "on");
       if (on.switchedOn) {
         on.about = await adsPage.evaluate(measureAd, "about");
         await adsPage.screenshot({ path: path.join(out, `${engine}-${size}-ads-about.png`), fullPage: true });
-        await adsPage.goto(`${url}?ads=on#download`);
+        await openPage(adsPage, url, "download", "on");
         await adsPage.waitForTimeout(500);
         on["download-no-system"] = await adsPage.evaluate(measureAd, "download");
         for (const os of ["web", "win", "lin"]) {
@@ -233,7 +301,7 @@ server.listen(0, async () => {
           await adsPage.screenshot({ path: path.join(out, `${engine}-${size}-ads-download-${os}.png`), fullPage: true });
         }
         for (const tab of ["profiles", "privacy"]) {
-          await adsPage.goto(`${url}?ads=on#${tab}`);
+          await openPage(adsPage, url, tab, "on");
           await adsPage.waitForTimeout(500);
           on[tab] = await adsPage.evaluate(() => ({
             visibleAds: [...document.querySelectorAll(".ad-slot, ins.adsbygoogle")].filter((el) => el.getClientRects().length).length,
