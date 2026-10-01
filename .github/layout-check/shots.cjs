@@ -3,10 +3,12 @@
 //   node shots.cjs <site folder> <output folder> <chromium|webkit>
 // Serves the folder locally with no internet (the release and library
 // lookups fall back the same way every time), then for a phone (iPhone 15,
-// 393x852) and a PC (1440x900) saves About and Download screenshots and
-// writes report.json with where the sidebar ends and the page content starts.
-// On About it also saves the view with the app screenshot covered, and the
-// "What a matchup looks like" section on its own, for looking at that image.
+// 393x852) and a PC (1440x900) saves About, Download, Counter Profiles and
+// Privacy screenshots and writes report.json with where the sidebar ends and
+// the page content starts. On About it also saves the view with the app
+// screenshot covered, and the "What a matchup looks like" section on its own,
+// for looking at that image. For the ads check it also notes the SITE.ads
+// setting, how many ads are visible, and which ad files the page asked for.
 
 const crypto = require("crypto");
 const http = require("http");
@@ -45,7 +47,13 @@ server.listen(0, async () => {
       const context = await browser.newContext({ ...options, reducedMotion: "reduce" });
       await context.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.abort());
       const page = await context.newPage();
-      for (const tab of ["about", "download"]) {
+      // Every request to Google's ad servers (they are blocked, like all
+      // outside requests, but still show what the page tried to load).
+      const adRequests = new Set();
+      page.on("request", (r) => {
+        if (/googlesyndication\.com|doubleclick\.net|adservice\.google|fundingchoicesmessages\.google/.test(r.url())) adRequests.add(r.url());
+      });
+      for (const tab of ["about", "download", "profiles", "privacy"]) {
         await page.goto(`${url}#${tab}`);
         await page.waitForTimeout(800);
         await page.screenshot({ path: path.join(out, `${engine}-${size}-${tab}.png`) });
@@ -63,8 +71,13 @@ server.listen(0, async () => {
             contentStartsAfterSidebar: Math.round(main.top - side.bottom),
             contentTop: Math.round(main.top + window.scrollY),
             tabs: [...document.querySelectorAll(".os-tab")].map((t) => t.textContent.trim()),
+            adsSetting: typeof SITE === "object" ? SITE.ads ?? null : null,
+            adsPublisher: typeof SITE === "object" ? SITE.adsPublisher ?? null : null,
+            visibleAds: [...document.querySelectorAll("ins.adsbygoogle, .ad-slot, iframe[src*='googlesyndication'], iframe[id^='aswift']")]
+              .filter((el) => el.getClientRects().length > 0).length,
           };
         });
+        report[`${size}-${tab}`].adRequests = [...adRequests];
         if (tab === "about") {
           const src = (await shot.getAttribute("src")) || "";
           report["shotImage"] = crypto.createHash("sha256").update(src).digest("hex");

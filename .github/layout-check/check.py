@@ -7,6 +7,9 @@
   pixel), in every engine. If the pull request replaces the app screenshot
   on About, that image is covered in the comparison and everything else must
   still match.
+- Ads: while SITE.ads is 'off', no page shows an ad, and the only ad file the
+  page asks for is Google's AdSense script with SITE.adsPublisher (the one
+  Google uses to check the site).
 """
 
 import json
@@ -31,6 +34,22 @@ for report_file in sorted(after.glob("*-report.json")):
             problems.append(f"{engine} phone {tab}: the sidebar is a whole screen tall ({phone['sideHeight']} px)")
         if pc["sideHeight"] != 900 or pc["contentTop"] != 0:
             problems.append(f"{engine} PC {tab}: sidebar {pc['sideHeight']} px, content top {pc['contentTop']} px")
+    # While ads are off, only Google's check script may load, and nothing shows.
+    for key, view in report.items():
+        if not isinstance(view, dict) or "adsSetting" not in view:
+            continue
+        if view["adsSetting"] == "on":
+            continue
+        script = f"https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={view['adsPublisher']}"
+        if view["visibleAds"]:
+            problems.append(f"{engine} {key}: ads are off, but {view['visibleAds']} ad(s) show")
+        others = [u for u in view["adRequests"] if u != script]
+        if others:
+            problems.append(f"{engine} {key}: ads are off, but the page asked for {others}")
+        if script not in view["adRequests"]:
+            problems.append(f"{engine} {key}: Google's AdSense script for {view['adsPublisher']} is missing (Google needs it to check the site)")
+    ads = report["pc-about"].get("adsSetting")
+    print(f"{engine} ads: SITE.ads is {ads!r}, ad files asked for: {report['pc-about'].get('adRequests')}")
     # A pull request that replaces the app screenshot changes that image on
     # purpose, so then compare with it covered: the rest must still match.
     old_report = json.loads((before / report_file.name).read_text())

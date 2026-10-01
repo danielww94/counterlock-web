@@ -12,8 +12,12 @@ hand in short numbered steps.
 
 - `index.html` has three live settings blocks at the top: `RELEASE` (GitHub
   repo, fallback version, release file names), `SUPABASE` (project URL and the
-  public publishable key) and `SITE` (contact and support emails, sponsors).
-  Never change, remove or reformat them unless Daniel asks.
+  public publishable key) and `SITE` (contact and support emails, sponsors,
+  Google AdSense ads). Never change, remove or reformat them unless Daniel asks.
+- Google AdSense: the AdSense script in `<head>` and `ads.txt` (site root)
+  stay as they are, so Google can check the site. Ads only ever go on the
+  main site (About, Download, Counter Profiles), never in `app/`, never near
+  download buttons or other buttons, and never inside forms or dialogs.
 - `supabase.js` is the Supabase client the Counter Profiles library needs.
   Keep it next to `index.html`.
 - Never add secrets. Everything in this repo is public.
