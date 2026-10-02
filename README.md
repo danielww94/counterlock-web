@@ -4,6 +4,8 @@ Deadlock has a huge item shop, and a lot of fights come down to whether you boug
 
 **Website and downloads:** https://danielww94.github.io/counterlock-web/
 
+**How to counter every hero:** https://getcounterlock.com/counter/
+
 ## What it does
 
 You pick the enemy hero, and if you want, the hero you're playing. Counterlock lays out the counter items for that matchup and sorts them into lane, mid, and late game, so you can see roughly when each one earns its slot. Above the items it gives you a quick read on the threat, meaning what this hero actually does to you, plus the single idea worth keeping in your head for the fight. There are also tips for the hero you're playing, and any notes on the current patch.

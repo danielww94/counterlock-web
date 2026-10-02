@@ -31,6 +31,14 @@
 // Last, it opens /privacy/ (the address AdSense uses for the privacy policy),
 // the old #links (/#download and so on), and reloads a page, and notes where
 // each lands and with which title.
+//
+// The counter pages (.github/build-pages.py): /counter/abrams/ and /counter/
+// get the same layout, ads and analytics checks, plus their search details
+// (title, one H1, description, canonical address, breadcrumbs). Unknown
+// addresses get 404.html, like on GitHub Pages. In Chromium it also opens
+// /app/?enemy=abrams (the counter pages' button) and notes which enemy the
+// web version picked. The site's sitemap.xml, robots.txt and 404.html are
+// read straight from the folder.
 
 const crypto = require("crypto");
 const http = require("http");
@@ -40,7 +48,10 @@ const playwright = require("playwright");
 
 const [root, out, engine] = process.argv.slice(2);
 const ADDRESS = { about: "", download: "download/", profiles: "profiles/", privacy: "privacy/" };
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".ico": "image/x-icon", ".css": "text/css" };
+const TYPES = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript", ".ico": "image/x-icon",
+  ".css": "text/css", ".json": "application/json", ".wasm": "application/wasm", ".png": "image/png",
+  ".svg": "image/svg+xml", ".xml": "application/xml", ".txt": "text/plain", ".webmanifest": "application/manifest+json" };
+const COUNTER = "counter/abrams/"; // the counter page the checks open
 
 // index.html with SITE.ads switched on or off, and on with made-up ad unit
 // IDs ('1234567890'), when the address ends in ?ads=on or ?ads=off.
@@ -70,9 +81,14 @@ const server = http.createServer((req, res) => {
   let file = decodeURIComponent(req.url.split("?")[0]);
   if (file.endsWith("/")) file += "index.html";
   file = path.join(root, file);
-  if (!file.startsWith(root) || !fs.existsSync(file)) {
+  if (!file.startsWith(root) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
+    // Like GitHub Pages: an unknown address gets 404.html, if the site has one.
     res.statusCode = 404;
-    res.end();
+    const missing = path.join(root, "404.html");
+    if (fs.existsSync(missing)) {
+      res.setHeader("content-type", "text/html");
+      res.end(fs.readFileSync(missing));
+    } else res.end();
     return;
   }
   res.setHeader("content-type", TYPES[path.extname(file)] || "application/octet-stream");
@@ -101,9 +117,11 @@ function measureAd(name) {
   const a = box.getBoundingClientRect();
   const ins = box.querySelector("ins.adsbygoogle");
   // Buttons, download links and anything that looks like a button, in the
-  // page content (the sidebar is its own column).
+  // page content (the sidebar is its own column). On a counter page every
+  // link and fold-out counts too.
   const controls = [...document.querySelectorAll(
     "main a.dl, main button, main .btn, main .getbtn, main .link-row, main .icon-dl a, main .upload, main input, main select, main textarea"
+    + (name === "counter" ? ", main a, main summary" : "")
   )].filter((el) => el.getClientRects().length);
   let nearest = Infinity, nearestName = "";
   for (const el of controls) {
@@ -129,6 +147,49 @@ function measureAd(name) {
     inForm: !!box.closest("form, dialog"),
     nearestControl: Math.round(nearest),
     nearestName,
+  };
+}
+
+// Run in the page: layout numbers, ads and analytics, and the search details.
+function pageFacts() {
+  const side = document.querySelector(".side").getBoundingClientRect();
+  const main = document.querySelector("main").getBoundingClientRect();
+  const meta = (sel, attr) => { const el = document.querySelector(sel); return el ? el.getAttribute(attr) : null; };
+  const ld = [...document.querySelectorAll('script[type="application/ld+json"]')].map((s) => {
+    try { return JSON.parse(s.textContent); } catch (e) { return { error: String(e) }; }
+  });
+  const primary = document.querySelector("main .btn.primary");
+  return {
+    address: location.pathname + location.hash,
+    title: document.title,
+    sideHeight: Math.round(side.height),
+    sideRight: Math.round(side.right),
+    contentStartsAfterSidebar: Math.round(main.top - side.bottom),
+    contentTop: Math.round(main.top + window.scrollY),
+    horizontalScroll: document.documentElement.scrollWidth > window.innerWidth,
+    adsSetting: typeof SITE === "object" ? SITE.ads ?? null : null,
+    adsPublisher: typeof SITE === "object" ? SITE.adsPublisher ?? null : null,
+    analytics: !!window.__cfViews,
+    visibleAds: [...document.querySelectorAll("ins.adsbygoogle, .ad-slot, iframe[src*='googlesyndication'], iframe[id^='aswift']")]
+      .filter((el) => el.getClientRects().length > 0).length,
+    adBoxes: document.querySelectorAll(".ad-slot").length,
+    h1: [...document.querySelectorAll("h1")].map((h) => h.textContent.trim()),
+    description: meta('meta[name="description"]', "content"),
+    canonical: meta('link[rel="canonical"]', "href"),
+    ogImage: meta('meta[property="og:image"]', "content"),
+    twitterCard: meta('meta[name="twitter:card"]', "content"),
+    ld,
+    crumbs: [...document.querySelectorAll(".crumbs li")].map((li) => {
+      const a = li.querySelector("a");
+      return [li.textContent.trim(), a ? a.getAttribute("href") : null];
+    }),
+    primary: primary ? [primary.textContent.trim(), primary.getAttribute("href")] : null,
+    downloadLink: !!document.querySelector('main a[href="/download/"]'),
+    navCurrent: [...document.querySelectorAll(".navitem[aria-current]")].map((a) => a.textContent.trim()),
+    groups: [...document.querySelectorAll("main h3.group, main .hero-cards")].length,
+    heroLinks: [...new Set([...document.querySelectorAll('main a[href^="/counter/"]')].map((a) => a.getAttribute("href")))]
+      .filter((h) => h !== "/counter/").length,
+    privacyLink: !!document.querySelector('.side a[href="/privacy/"]'),
   };
 }
 
@@ -173,6 +234,8 @@ server.listen(0, async () => {
             address: location.pathname + location.hash,
             title: document.title,
             sideHeight: Math.round(side.height),
+            sideRight: Math.round(side.right),
+            navLabels: [...document.querySelectorAll(".side .navitem")].map((n) => n.textContent.trim()),
             contentStartsAfterSidebar: Math.round(main.top - side.bottom),
             contentTop: Math.round(main.top + window.scrollY),
             tabs: [...document.querySelectorAll(".os-tab")].map((t) => t.textContent.trim()),
@@ -198,6 +261,25 @@ server.listen(0, async () => {
           });
           await page.screenshot({ path: path.join(out, `${engine}-${size}-about-matchup.png`), fullPage: true, clip });
         }
+      }
+      // The counter pages, as published, with ads off.
+      const counterSite = fs.existsSync(path.join(root, COUNTER, "index.html"));
+      report["counterPages"] = counterSite;
+      if (counterSite) {
+        for (const [key, address] of [["counter", COUNTER], ["counterIndex", "counter/"]]) {
+          await page.goto(`${url}${address}?ads=off`);
+          await page.waitForTimeout(500);
+          await page.screenshot({ path: path.join(out, `${engine}-${size}-${key}.png`) });
+          await page.screenshot({ path: path.join(out, `${engine}-${size}-${key}-full.png`), fullPage: true });
+          report[`${size}-${key}`] = { ...(await page.evaluate(pageFacts)), adRequests: [...adRequests] };
+        }
+        // An unknown address shows 404.html.
+        const lost = await page.goto(`${url}no-such-page/`);
+        // (No AdSense script there, so it stays out of the ads-off checks.)
+        const { adsSetting, ...facts } = await page.evaluate(pageFacts);
+        report[`${size}-notFound`] = { status: lost.status(), ...facts,
+          links: await page.$$eval("main a", (as) => as.map((a) => a.getAttribute("href"))) };
+        await page.screenshot({ path: path.join(out, `${engine}-${size}-404.png`) });
       }
       report[`${size}-pageErrors`] = pageErrors;
 
@@ -300,6 +382,17 @@ server.listen(0, async () => {
           on[`download-${os}`] = await adsPage.evaluate(measureAd, "download");
           await adsPage.screenshot({ path: path.join(out, `${engine}-${size}-ads-download-${os}.png`), fullPage: true });
         }
+        if (report["counterPages"]) {
+          await adsPage.goto(`${url}${COUNTER}?ads=on`);
+          await adsPage.waitForTimeout(500);
+          on.counter = await adsPage.evaluate(measureAd, "counter");
+          await adsPage.screenshot({ path: path.join(out, `${engine}-${size}-ads-counter.png`), fullPage: true });
+          await adsPage.goto(`${url}counter/?ads=on`);
+          await adsPage.waitForTimeout(300);
+          on.counterIndex = await adsPage.evaluate(() => ({
+            visibleAds: [...document.querySelectorAll(".ad-slot, ins.adsbygoogle")].filter((el) => el.getClientRects().length).length,
+          }));
+        }
         for (const tab of ["profiles", "privacy"]) {
           await openPage(adsPage, url, tab, "on");
           await adsPage.waitForTimeout(500);
@@ -312,6 +405,42 @@ server.listen(0, async () => {
       report[`${size}-adsOn`] = on;
       await adsContext.close();
     }
+
+    // The counter pages' button: /app/?enemy=abrams opens the web version
+    // with Abrams picked (from 0.42). Chromium only: it loads all of Python.
+    if (engine === "chromium" && fs.existsSync(path.join(root, "app", "index.html"))) {
+      const appContext = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+      await appContext.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.abort());
+      const app = await appContext.newPage();
+      const appErrors = [];
+      app.on("pageerror", (e) => appErrors.push(String(e).split("\n")[0]));
+      const info = { version: JSON.parse(fs.readFileSync(path.join(root, "app", "version.json"), "utf8")).version };
+      try {
+        await app.goto(`${url}app/?enemy=abrams`);
+        await app.waitForSelector("#main-view:not([hidden])", { timeout: 120000 });
+        info.enemy = await app.inputValue("#enemy-hero");
+        info.selection = (await app.textContent("#selection")).replace(/\s+/g, " ").trim();
+        await app.screenshot({ path: path.join(out, `${engine}-app-enemy-abrams.png`) });
+      } catch (e) {
+        info.error = String(e).split("\n")[0];
+      }
+      info.pageErrors = appErrors;
+      report["appLink"] = info;
+      await appContext.close();
+    }
+
+    // Files search engines read.
+    const read = (name) => (fs.existsSync(path.join(root, name)) ? fs.readFileSync(path.join(root, name), "utf8") : null);
+    const sitemap = read("sitemap.xml");
+    report["siteFiles"] = {
+      sitemap: sitemap && [...sitemap.matchAll(/<url><loc>([^<]*)<\/loc>(?:<lastmod>([^<]*)<\/lastmod>)?/g)].map((m) => [m[1], m[2] || null]),
+      robots: read("robots.txt"),
+      counterFolders: fs.existsSync(path.join(root, "counter"))
+        ? fs.readdirSync(path.join(root, "counter")).filter((d) => fs.existsSync(path.join(root, "counter", d, "index.html"))).sort()
+        : [],
+      adsTxt: read("ads.txt"),
+      ogImage: fs.existsSync(path.join(root, "og-image.png")),
+    };
   } finally {
     fs.writeFileSync(path.join(out, `${engine}-report.json`), JSON.stringify(report, null, 1));
     await browser.close();
