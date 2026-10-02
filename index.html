@@ -700,6 +700,11 @@ document.documentElement.setAttribute('data-palette', ['green', 'mixed', 'purple
       justify-content:start;column-gap:clamp(20px,6vw,36px)}
     .navitem{font-size:clamp(15px,calc(7.4vw - 8.6px),20px)}
   }
+  /* The narrowest phones: the Download page's system tabs need a little less
+     padding to fit side by side. */
+  @media (max-width:359px){
+    .os-tab{flex:1 1 auto;min-width:0;padding:15px 6px;gap:7px;font-size:16px}
+  }
   /* Small laptops and tablets on their side: the sidebar takes 270 px, so a
      little less space around the page text. */
   @media (min-width:821px) and (max-width:1024px){

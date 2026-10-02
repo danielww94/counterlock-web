@@ -27,7 +27,8 @@
   page that has the sidebar (the four main pages, both counter pages, 404):
   same text size, line spacing and height, and every item on one line.
 - Sidebar menu at every width (WIDTHS in shots.cjs, 320 to 1440 px), on every
-  page with the sidebar: no page scrolls sideways, every item is one line
+  page with the sidebar: no page scrolls sideways (and the Download page's
+  system tabs fit their text), every item is one line
   that fits (no text overflow), at least 44 px tall, all the same text size
   and height. PC (over 820 px): one column, diamonds lined up, evenly
   spaced. Tablets (700 to 820 px): one row of four, evenly spaced. Phones
@@ -145,6 +146,8 @@ def check_widths(engine, report):
             continue
         if view["horizontalScroll"]:
             problems.append(f"{where}: the page scrolls sideways")
+        if view.get("clipped"):
+            problems.append(f"{where}: the text doesn't fit in {view['clipped']}")
         lines = {n["label"]: n["lines"] for n in view.get("nav") or []}
         for item in items:
             if len(lines.get(item["label"], [])) != 1:

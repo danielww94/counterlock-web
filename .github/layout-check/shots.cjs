@@ -243,6 +243,9 @@ function menuLayout() {
   const inner = side.getBoundingClientRect().right - parseFloat(style.paddingRight);
   return {
     horizontalScroll: document.documentElement.scrollWidth > window.innerWidth,
+    // Buttons in a row whose text no longer fits (the Download page's tabs).
+    clipped: [...document.querySelectorAll(".page.active .os-tab")]
+      .filter((el) => el.getClientRects().length && el.scrollWidth > el.clientWidth + 1).map((el) => el.textContent.trim()),
     sideInnerRight: Math.round(inner),
     sideHeight: Math.round(side.getBoundingClientRect().height),
     items: [...document.querySelectorAll(".side .navitem")].map((item) => {
