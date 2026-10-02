@@ -27,7 +27,8 @@
 #   - The counter pages, made from the latest release's Counterlock-web.zip
 #     like deploy-site.yml does: /counter/abrams/ at phone and PC size (same
 #     layout, its own title, description, canonical address and one H1,
-#     breadcrumbs, the ad rules, analytics), /counter/, 404.html,
+#     breadcrumbs, the web app button and Download link at the top, no
+#     quick answer box, the ad rules, analytics), /counter/, 404.html,
 #     sitemap.xml and robots.txt, and that /app/?enemy=abrams opens the web
 #     version with Abrams picked.
 #   - The sidebar's "Hero Counters" is drawn like "Counter Profiles" on every

@@ -284,14 +284,9 @@ COUNTER_CSS = """
 .crumbs a{color:var(--bone-dim);text-decoration:none;border-bottom:1px solid var(--line)}
 .crumbs a:hover{color:var(--iris)}
 .updated{font-size:13px;color:var(--bone-dim);margin:-22px 0 26px}
-.quick{border:1px solid var(--iris-deep);background:var(--ink-2);padding:20px 24px;max-width:680px;margin:6px 0 0}
-.quick .label{font-family:var(--cond);text-transform:uppercase;letter-spacing:.06em;font-size:13px;color:var(--orchid);margin:0 0 8px}
-.quick p{margin:0 0 12px;font-size:16px;color:var(--bone)}
-.quick ol{margin:0 0 20px;padding-left:22px;max-width:62ch}
-.quick li{margin:0 0 8px;font-size:15px;color:var(--bone)}
-.quick li .when{color:var(--bone-dim)}
-.quick .actions{display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px}
-.quick .btn{display:inline-block;text-decoration:none;font-size:14px;padding:11px 18px}
+.hero-actions{max-width:680px;margin:6px 0 0}
+.hero-actions .actions{display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px}
+.hero-actions .btn{display:inline-block;text-decoration:none;font-size:14px;padding:11px 18px}
 .text{font-size:15.5px;color:var(--bone);margin:0 0 10px}
 .time{font-family:var(--sans);text-transform:none;letter-spacing:0;font-weight:400;color:var(--bone-dim);font-size:13px;margin-left:8px}
 .items{list-style:none;padding:0;margin:0;max-width:70ch}
@@ -321,14 +316,10 @@ COUNTER_CSS = """
 .type-pick label span{color:var(--bone-dim);text-transform:none;letter-spacing:0;font-family:var(--sans)}
 .type-pick select{min-height:44px;min-width:150px;padding:8px 12px;font:inherit;font-size:15px;color:var(--bone);background:var(--ink);border:1px solid var(--line);border-radius:0}
 .type-pick select:focus-visible{outline:2px solid var(--iris);outline-offset:2px}
-.quick-builds.stacked{display:grid}
-.quick-builds.stacked>ol{grid-area:1/1}
-.quick-builds.stacked>ol[hidden]{display:block !important;visibility:hidden}
 .type-note{flex-basis:100%;margin:0;font-size:14px;color:var(--bone-dim)}
 .lost-links{display:flex;flex-wrap:wrap;gap:12px;margin:22px 0 0}
 .lost-links .btn{display:inline-block;text-decoration:none;font-size:14px;padding:11px 18px}
 @media (max-width:820px){
-  .quick{padding:18px}
   .tips-list ul,.tips-list .vs{padding-left:30px}
 }
 """
@@ -365,19 +356,6 @@ def updated_line(profile) -> str:
     return f'<p class="updated">{" ".join(bits)}</p>' if bits else ""
 
 
-def top_items(enemy) -> list[tuple[str, object]]:
-    """The 3 most important counters: the profile lists each phase's items
-    most important first, so the first of lane, mid and late, filled up from
-    the next ones when a phase is empty."""
-    phases = [("Lane", enemy.lane), ("Mid game", enemy.mid), ("Late game", enemy.late)]
-    picks = [(label, items[0]) for label, items in phases if items]
-    depth = 1
-    while len(picks) < 3 and any(len(items) > depth for _l, items in phases):
-        picks += [(label, items[depth]) for label, items in phases if len(items) > depth][:3 - len(picks)]
-        depth += 1
-    return picks[:3]
-
-
 HERO_TYPES = ("gun", "spirit", "hybrid")
 
 # The type box on a hero page with builds per type: shows the build for the
@@ -405,7 +383,6 @@ TYPE_SCRIPT = """<script>
   }
   box.addEventListener('change', show);
   show();
-  document.querySelector('.quick-builds').classList.add('stacked');
   pick.hidden = false;
 })();
 </script>"""
@@ -418,15 +395,6 @@ def type_builds(enemy) -> dict:
               if t and (b.lane or b.mid or b.late)}
     order = lambda t: (HERO_TYPES.index(t) if t in HERO_TYPES else len(HERO_TYPES), t)
     return {t: builds[t] for t in sorted(builds, key=order)}
-
-
-def quick_items(picks) -> list[str]:
-    lines = []
-    for label, item in picks:
-        note = first_sentence(item.note)
-        lines.append(f'          <li><b>{esc(item.name)}</b> <span class="when">({esc(label.lower())})</span>'
-                     + (f" {esc(note)}" if note else "") + "</li>")
-    return lines
 
 
 def type_box(hero, builds: dict) -> list[str]:
@@ -462,29 +430,8 @@ def counter_page(site: Site, profile, phases, hero, version: str) -> str:
     out.append(f'      <p class="lede">{esc(kind)}Counter items for lane, mid and late game, and tips for the hero you play.</p>')
     out.append("      " + updated_line(profile))
 
-    # Quick answer: the threat in one sentence and the 3 most important items.
-    threat = first_sentence(e.key_principle) or first_sentence(e.threat_profile)
-    out.append('      <div class="quick">')
-    out.append('        <p class="label">Quick answer</p>')
-    if threat:
-        out.append(f"        <p>{esc(threat)}</p>")
-    picks = top_items(e)
-    if builds:
-        # Every build's top items; the page's script stacks them so the type
-        # box under them doesn't move when the type changes.
-        out.append('        <div class="quick-builds">')
-        out.append('        <ol data-build="default">')
-        out += quick_items(picks)
-        out.append("        </ol>")
-        for build_type, build in builds.items():
-            out.append(f'        <ol data-build="{esc(build_type)}" hidden>')
-            out += quick_items(top_items(build))
-            out.append("        </ol>")
-        out.append("        </div>")
-    elif picks:
-        out.append("        <ol>")
-        out += quick_items(picks)
-        out.append("        </ol>")
+    # The web app button and the Download link, with the type box under them.
+    out.append('      <div class="hero-actions">')
     out.append('        <div class="actions">')
     out.append(f'          <a class="btn primary" href="/app/?enemy={esc(hero.hero_id)}">Open {esc(name)} in the Counterlock web app</a>')
     out.append('          <a class="inline-link" href="/download/">Download Counterlock</a>')
