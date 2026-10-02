@@ -14,6 +14,12 @@ version in app/. This script adds:
     same profile the web version starts with. They read it with the app's own
     Python (app/core.zip), so they always match the app and update with every
     release. No release with the web version: no counter pages.
+  - On the page of an enemy whose profile has builds per damage type (0.43
+    profiles: <counters type="spirit">), a "Type (optional)" box under the
+    web app button that switches the items shown. Every build is in the
+    page's HTML for search engines, and the default build shows without
+    JavaScript (the box only appears with it). Other heroes' pages, and
+    every page made from an older release, stay exactly as they were.
   - /404.html, the page GitHub Pages shows for an unknown address.
   - /sitemap.xml with every page (robots.txt points to it).
 
@@ -310,6 +316,15 @@ COUNTER_CSS = """
 .hero-cards a:hover{border-color:var(--iris)}
 .hero-cards b{display:block;font-family:var(--cond);text-transform:uppercase;letter-spacing:.02em;font-weight:600;font-size:18px}
 .hero-cards small{display:block;color:var(--bone-dim);font-size:13px;line-height:1.5;margin-top:3px}
+.type-pick{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin:18px 0 0}
+.type-pick label{font-family:var(--cond);text-transform:uppercase;letter-spacing:.06em;font-size:13px;color:var(--orchid)}
+.type-pick label span{color:var(--bone-dim);text-transform:none;letter-spacing:0;font-family:var(--sans)}
+.type-pick select{min-height:44px;min-width:150px;padding:8px 12px;font:inherit;font-size:15px;color:var(--bone);background:var(--ink);border:1px solid var(--line);border-radius:0}
+.type-pick select:focus-visible{outline:2px solid var(--iris);outline-offset:2px}
+.quick-builds.stacked{display:grid}
+.quick-builds.stacked>ol{grid-area:1/1}
+.quick-builds.stacked>ol[hidden]{display:block !important;visibility:hidden}
+.type-note{flex-basis:100%;margin:0;font-size:14px;color:var(--bone-dim)}
 .lost-links{display:flex;flex-wrap:wrap;gap:12px;margin:22px 0 0}
 .lost-links .btn{display:inline-block;text-decoration:none;font-size:14px;padding:11px 18px}
 @media (max-width:820px){
@@ -363,8 +378,74 @@ def top_items(enemy) -> list[tuple[str, object]]:
     return picks[:3]
 
 
+HERO_TYPES = ("gun", "spirit", "hybrid")
+
+# The type box on a hero page with builds per type: shows the build for the
+# picked type, or the default build with a short note when the hero has no
+# build for it (the app's rule: no note for the hero's own type or "Any type").
+TYPE_SCRIPT = """<script>
+(function(){
+  const pick = document.querySelector('.type-pick');
+  if (!pick) return;
+  const box = pick.querySelector('select');
+  const note = pick.querySelector('.type-note');
+  const builds = pick.dataset.builds.split(' ');
+  const own = pick.dataset.own;
+  const name = pick.dataset.name;
+  function show() {
+    const type = box.value;
+    const build = builds.indexOf(type) >= 0 ? type : 'default';
+    document.querySelectorAll('[data-build]').forEach(function (el) { el.hidden = el.dataset.build !== build; });
+    document.querySelectorAll('[data-phase-builds]').forEach(function (el) {
+      el.hidden = el.dataset.phaseBuilds.split(' ').indexOf(build) < 0;
+    });
+    const missing = type && build === 'default' && type !== own;
+    note.textContent = missing ? '(No ' + type + ' build for ' + name + ' yet, showing the default.)' : '';
+    note.hidden = !missing;
+  }
+  box.addEventListener('change', show);
+  show();
+  document.querySelector('.quick-builds').classList.add('stacked');
+  pick.hidden = false;
+})();
+</script>"""
+
+
+def type_builds(enemy) -> dict:
+    """The enemy's builds per damage type that have items, gun, spirit,
+    hybrid first. Empty for profiles from before 0.43 (no builds at all)."""
+    builds = {t: b for t, b in (getattr(enemy, "builds", None) or {}).items()
+              if t and (b.lane or b.mid or b.late)}
+    order = lambda t: (HERO_TYPES.index(t) if t in HERO_TYPES else len(HERO_TYPES), t)
+    return {t: builds[t] for t in sorted(builds, key=order)}
+
+
+def quick_items(picks) -> list[str]:
+    lines = []
+    for label, item in picks:
+        note = first_sentence(item.note)
+        lines.append(f'          <li><b>{esc(item.name)}</b> <span class="when">({esc(label.lower())})</span>'
+                     + (f" {esc(note)}" if note else "") + "</li>")
+    return lines
+
+
+def type_box(hero, builds: dict) -> list[str]:
+    """The "Type (optional)" box, hidden until the page's script runs. It
+    starts at the hero's own type, like the app's enemy type box."""
+    own = hero.hero_type if hero.hero_type in HERO_TYPES else ""
+    options = [("", "Any type")] + [(t, t.capitalize()) for t in HERO_TYPES]
+    opts = "".join(f'<option value="{t}"{" selected" if t == own else ""}>{label}</option>' for t, label in options)
+    return [f'        <div class="type-pick" data-builds="{esc(" ".join(builds))}" data-own="{esc(own)}" '
+            f'data-name="{esc(hero.name)}" hidden>',
+            '          <label for="type-box">Type <span>(optional)</span></label>',
+            f'          <select id="type-box">{opts}</select>',
+            '          <p class="type-note" hidden></p>',
+            "        </div>"]
+
+
 def counter_page(site: Site, profile, phases, hero, version: str) -> str:
     e = profile.enemies[hero.hero_id]
+    builds = type_builds(e)
     name = hero.name
     path = f"/counter/{slug(hero.hero_id)}/"
     title = f"How to counter {name} in Deadlock"
@@ -388,17 +469,28 @@ def counter_page(site: Site, profile, phases, hero, version: str) -> str:
     if threat:
         out.append(f"        <p>{esc(threat)}</p>")
     picks = top_items(e)
-    if picks:
+    if builds:
+        # Every build's top items; the page's script stacks them so the type
+        # box under them doesn't move when the type changes.
+        out.append('        <div class="quick-builds">')
+        out.append('        <ol data-build="default">')
+        out += quick_items(picks)
+        out.append("        </ol>")
+        for build_type, build in builds.items():
+            out.append(f'        <ol data-build="{esc(build_type)}" hidden>')
+            out += quick_items(top_items(build))
+            out.append("        </ol>")
+        out.append("        </div>")
+    elif picks:
         out.append("        <ol>")
-        for label, item in picks:
-            note = first_sentence(item.note)
-            out.append(f'          <li><b>{esc(item.name)}</b> <span class="when">({esc(label.lower())})</span>'
-                       + (f" {esc(note)}" if note else "") + "</li>")
+        out += quick_items(picks)
         out.append("        </ol>")
     out.append('        <div class="actions">')
     out.append(f'          <a class="btn primary" href="/app/?enemy={esc(hero.hero_id)}">Open {esc(name)} in the Counterlock web app</a>')
     out.append('          <a class="inline-link" href="/download/">Download Counterlock</a>')
     out.append("        </div>")
+    if builds:
+        out += type_box(hero, builds)
     out.append("      </div>")
 
     if e.threat_profile:
@@ -410,20 +502,35 @@ def counter_page(site: Site, profile, phases, hero, version: str) -> str:
     if e.note:
         out.append(f'      <div class="callout">{esc(e.note)}</div>')
 
-    for n, ((label, time_range), items) in enumerate(zip(phases, (e.lane, e.mid, e.late))):
+    phase_lists = lambda b: (b.lane, b.mid, b.late)
+    for n, ((label, time_range), items) in enumerate(zip(phases, phase_lists(e))):
         if n == 2:
             # The ad position: between the item lists, far from every link
             # and button. Hidden unless SITE.ads is 'on' (see the script).
             out.append('      <div class="ad-slot" data-ad="counter" hidden><p class="ad-label">Advertisement</p></div>')
-        if not items:
+        # Each build's items for this phase (only the default without builds).
+        lists = [("default", items)] + [(t, phase_lists(b)[n]) for t, b in builds.items()]
+        lists = [(t, its) for t, its in lists if its]
+        if not lists:
             continue
         time = f'<span class="time">{esc(time_range)}</span>' if time_range else ""
-        out.append(f'      <h2 class="sec">{esc(label)} items{time}</h2>')
-        out.append('      <ul class="items">')
-        for item in items:
-            note = f" {esc(item.note)}" if item.note else ""
-            out.append(f"        <li><b>{esc(item.name)}</b>{note}</li>")
-        out.append("      </ul>")
+        if builds:
+            # Shown for the builds that have items here (the page's script).
+            shown = " ".join(t for t, _its in lists)
+            hidden = "" if items else " hidden"
+            out.append(f'      <h2 class="sec" data-phase-builds="{esc(shown)}"{hidden}>{esc(label)} items{time}</h2>')
+        else:
+            out.append(f'      <h2 class="sec">{esc(label)} items{time}</h2>')
+        for build_type, its in lists:
+            if builds:
+                hidden = "" if build_type == "default" else " hidden"
+                out.append(f'      <ul class="items" data-build="{esc(build_type)}"{hidden}>')
+            else:
+                out.append('      <ul class="items">')
+            for item in its:
+                note = f" {esc(item.note)}" if item.note else ""
+                out.append(f"        <li><b>{esc(item.name)}</b>{note}</li>")
+            out.append("      </ul>")
 
     if e.patch_note:
         out.append('      <h2 class="sec">Patch note</h2>')
@@ -449,6 +556,8 @@ def counter_page(site: Site, profile, phases, hero, version: str) -> str:
     out.append("      " + hero_list(profile, hero.hero_id))
     out.append("    </section>")
     out.append(PAGE_SCRIPT)
+    if builds:
+        out.append(TYPE_SCRIPT)
     out.append(foot())
     return "\n".join(out)
 

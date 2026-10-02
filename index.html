@@ -246,11 +246,12 @@ document.documentElement.setAttribute('data-palette', ['green', 'mixed', 'purple
     font-weight:600;
     text-transform:uppercase;
     letter-spacing:.04em;
-    font-size:26px;
+    font-size:22px;
     line-height:1.15;
     color:var(--bone-dim);
-    padding:9px 0;
+    padding:10px 0;
     text-align:left;
+    white-space:nowrap;
     transition:color .15s ease;
     width:100%;
   }
@@ -683,12 +684,31 @@ document.documentElement.setAttribute('data-palette', ['green', 'mixed', 'purple
       padding:24px 22px 16px;
     }
     .brand{margin-bottom:20px}
-    nav.main{flex-direction:row;flex-wrap:wrap;gap:6px 22px}
-    .navitem{font-size:20px;width:auto}
-    .navitem br.wide{display:none}
+    /* Menu: one row of four on tablets, two columns of two on phones.
+       Every item is one line and at least 44 px tall (a finger-sized tap). */
+    nav.main{display:grid;grid-template-columns:repeat(4,auto);justify-content:space-between;gap:0 16px}
+    .navitem{font-size:20px;width:auto;min-height:44px;padding:0}
     .side .foot{margin-top:20px}
     main{padding:30px 22px 70px}
     h1.title{font-size:31px}
+  }
+  @media (max-width:699px){
+    /* About and Download on the left, Counter Profiles and Hero Counters on
+       the right, so the long names share a column. The text shrinks a little
+       on the narrowest phones so both columns always fit. */
+    nav.main{grid-template-columns:auto auto;grid-template-rows:auto auto;grid-auto-flow:column;
+      justify-content:start;column-gap:clamp(20px,6vw,36px)}
+    .navitem{font-size:clamp(15px,calc(7.4vw - 8.6px),20px)}
+  }
+  /* The narrowest phones: the Download page's system tabs need a little less
+     padding to fit side by side. */
+  @media (max-width:359px){
+    .os-tab{flex:1 1 auto;min-width:0;padding:15px 6px;gap:7px;font-size:16px}
+  }
+  /* Small laptops and tablets on their side: the sidebar takes 270 px, so a
+     little less space around the page text. */
+  @media (min-width:821px) and (max-width:1024px){
+    main{padding:44px 36px 80px}
   }
 </style>
 </head>
@@ -706,7 +726,7 @@ document.documentElement.setAttribute('data-palette', ['green', 'mixed', 'purple
       <button class="navitem" data-nav="about" aria-current="page"><span class="tick"></span>About</button>
       <button class="navitem" data-nav="download"><span class="tick"></span>Download</button>
       <button class="navitem" data-nav="profiles"><span class="tick"></span>Counter Profiles</button>
-      <a class="navitem" href="/counter/"><span class="tick"></span><span>Hero<br class="wide"> Counters</span></a>
+      <a class="navitem" href="/counter/"><span class="tick"></span>Hero Counters</a>
     </nav>
 
     <div class="foot">

@@ -31,11 +31,20 @@
 #     sitemap.xml and robots.txt, and that /app/?enemy=abrams opens the web
 #     version with Abrams picked.
 #   - The sidebar's "Hero Counters" is drawn like "Counter Profiles" on every
-#     page (same size and line spacing; two lines at PC size, one on a phone),
-#     and "Browse all heroes" and /counter/ are one A to Z list, no type
-#     headings.
+#     page (same size and line spacing, one line), and "Browse all heroes" and
+#     /counter/ are one A to Z list, no type headings.
+#   - The sidebar menu at 320, 360, 375, 393, 412, 430 (phones), 768, 820,
+#     834, 1024 (tablets) and 1280, 1440 px (PC), on every page with the
+#     sidebar: no sideways scrolling, every item on one line that fits, at
+#     least 44 px tall, the same size; one column on a PC, one row of four on
+#     a tablet, two columns of two on a phone.
+#   - The "Type (optional)" box on a hero page with builds per damage type,
+#     on a test copy of the release where Abrams has a spirit build
+#     (builds-zip.py): with and without JavaScript. Skipped (with a notice)
+#     while the latest release is older than 0.43.
 #
-# Before and after screenshots (About, Download, Counter Profiles, Privacy)
+# Before and after screenshots (About, Download, Counter Profiles, Privacy,
+# the top of About at 320, 393, 768, 834 and 1280 px, and the type box)
 # from both engines are kept under the run's "Artifacts" for 14 days. The scripts are in .github/layout-check/. None of
 # this is published: the site leaves out .github.
 name: Layout check
@@ -108,6 +117,14 @@ jobs:
           zip=$(ls web-zip/Counterlock-web.zip 2>/dev/null || true)
           bash after/.github/build-site.sh before site-before $zip
           bash after/.github/build-site.sh after site-after $zip
+          # A test copy where Abrams has a spirit build, for the type box
+          # (only from 0.43, see builds-zip.py).
+          if [ -n "$zip" ]; then
+            python3 after/.github/layout-check/builds-zip.py "$zip" web-zip/builds.zip
+            if [ -f web-zip/builds.zip ]; then
+              bash after/.github/build-site.sh after site-builds web-zip/builds.zip
+            fi
+          fi
       - name: Screenshots and checks
         timeout-minutes: 10
         run: |
@@ -115,6 +132,9 @@ jobs:
           for engine in chromium webkit; do
             node after/.github/layout-check/shots.cjs "$PWD/site-before" "$PWD/shots/before" "$engine"
             node after/.github/layout-check/shots.cjs "$PWD/site-after" "$PWD/shots/after" "$engine"
+            if [ -d site-builds ]; then
+              node after/.github/layout-check/typebox.cjs "$PWD/site-builds" "$PWD/shots/after" "$engine"
+            fi
           done
           python after/.github/layout-check/check.py shots/before shots/after
       - uses: actions/upload-artifact@v6
