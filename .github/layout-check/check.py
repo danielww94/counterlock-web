@@ -25,8 +25,21 @@
   as page views, each under the page's own address.
 - Sidebar menu: "Hero Counters" is drawn like "Counter Profiles" on every
   page that has the sidebar (the four main pages, both counter pages, 404):
-  same text size, line spacing and height. At PC size both are on two lines
-  (HERO / COUNTERS, COUNTER / PROFILES); at phone size both are on one line.
+  same text size, line spacing and height, and every item on one line.
+- Sidebar menu at every width (WIDTHS in shots.cjs, 320 to 1440 px), on every
+  page with the sidebar: no page scrolls sideways, every item is one line
+  that fits (no text overflow), at least 44 px tall, all the same text size
+  and height. PC (over 820 px): one column, diamonds lined up, evenly
+  spaced. Tablets (700 to 820 px): one row of four, evenly spaced. Phones
+  (under 700 px): two columns of two (About and Download, then Counter
+  Profiles and Hero Counters), diamonds lined up in each column.
+- Hero page type box (when the release can hold builds per type, 0.43 and
+  later; typebox.cjs on a test copy where Abrams has a spirit build): with
+  JavaScript off the default build shows and the box doesn't, every build is
+  in the HTML; with it on the box shows under the web app button, starts at
+  Gun, is at least 44 px tall, switches the items (and the quick answer)
+  without moving, Hybrid shows the default with "(No hybrid build for Abrams
+  yet, showing the default.)", and a hero without builds has no box.
 - If the pull request changes the sidebar's menu or how it is drawn, the About
   comparison covers only the page content (right of the sidebar).
 - Counter pages (when the site has them, made from the latest release):
@@ -92,7 +105,7 @@ def check_ad_box(engine, size, key, ad):
 
 def check_nav(engine, size, where, nav):
     """Hero Counters looks like Counter Profiles: same size, line spacing and
-    height, two lines at PC size and one on a phone."""
+    height, both on one line."""
     by_label = {item["label"]: item for item in nav or []}
     profiles, counters = by_label.get("Counter Profiles"), by_label.get("Hero Counters")
     if not profiles or not counters:
@@ -102,10 +115,105 @@ def check_nav(engine, size, where, nav):
     for key in ("fontSize", "lineHeight", "height"):
         if profiles[key] != counters[key]:
             problems.append(f"{engine} {size} {where}: Hero Counters {key} {counters[key]} differs from Counter Profiles {profiles[key]}")
-    want = (["Counter", "Profiles"], ["Hero", "Counters"]) if size == "pc" else (["Counter Profiles"], ["Hero Counters"])
+    want = (["Counter Profiles"], ["Hero Counters"])
     got = tuple([line.strip() for line in item["lines"]] for item in (profiles, counters))
     if got != want:
         problems.append(f"{engine} {size} {where}: sidebar lines are {got[0]} and {got[1]}, expected {want[0]} and {want[1]}")
+
+
+MENU = ["About", "Download", "Counter Profiles", "Hero Counters"]
+
+
+def close(values, slack=2):
+    return max(values) - min(values) <= slack
+
+
+def check_widths(engine, report):
+    """The menu at every width (see the top)."""
+    sweep = report.get("widths") or {}
+    if not sweep:
+        problems.append(f"{engine}: no menu sweep in the report")
+    for key, view in sorted(sweep.items(), key=lambda kv: (int(kv[0].split("-")[0]), kv[0])):
+        width = int(key.split("-")[0])
+        where = f"{engine} {width}px {key.split('-', 1)[1]}"
+        if view.get("error"):
+            problems.append(f"{where}: {view['error']}")
+            continue
+        items = view["items"]
+        if [i["label"] for i in items] != MENU:
+            problems.append(f"{where}: menu items are {[i['label'] for i in items]}")
+            continue
+        if view["horizontalScroll"]:
+            problems.append(f"{where}: the page scrolls sideways")
+        lines = {n["label"]: n["lines"] for n in view.get("nav") or []}
+        for item in items:
+            if len(lines.get(item["label"], [])) != 1:
+                problems.append(f"{where}: {item['label']} is on {lines.get(item['label'])} lines")
+            if item["overflow"] or item["textRight"] > item["right"] + 1 or item["right"] > view["sideInnerRight"] + 1:
+                problems.append(f"{where}: {item['label']} doesn't fit ({item})")
+            if item["height"] < 44:
+                problems.append(f"{where}: {item['label']} is {item['height']} px tall (a tap needs 44)")
+        if len({i["fontSize"] for i in items}) != 1 or not close([i["height"] for i in items], 0):
+            problems.append(f"{where}: menu items differ in size {[(i['fontSize'], i['height']) for i in items]}")
+        a, d, p, h = items
+        if width > 820:
+            steps = [b["top"] - t["top"] for t, b in zip(items, items[1:])]
+            shape = close([i["tickLeft"] for i in items], 0) and close(steps, 1) and min(steps) > 0
+            name = f"one column, evenly spaced (steps {steps})"
+        elif width >= 700:
+            gaps = [b["left"] - t["right"] for t, b in zip(items, items[1:])]
+            shape = close([i["top"] for i in items], 0) and close(gaps, 2) and min(gaps) >= 12
+            name = f"one row of four, evenly spaced (gaps {gaps})"
+        else:
+            shape = (a["top"] == p["top"] and d["top"] == h["top"] and d["top"] > a["top"]
+                     and a["tickLeft"] == d["tickLeft"] and p["tickLeft"] == h["tickLeft"] and p["left"] >= a["right"] + 12)
+            name = "two columns of two, diamonds lined up"
+        if not shape:
+            problems.append(f"{where}: the menu isn't {name}: {[(i['label'], i['left'], i['top'], i['right']) for i in items]}")
+    phone = [v for k, v in sweep.items() if k.endswith("-about") and int(k.split("-")[0]) < 700 and "items" in v]
+    print(f"{engine} menu sweep: {len(sweep)} page views checked; phone sidebar heights "
+          f"{sorted({v['sideHeight'] for v in phone})} px")
+
+
+def check_typebox(engine, path):
+    """The type box on a hero page with builds (see the top)."""
+    if not path.is_file():
+        print(f"::notice::{engine}: no hero page type box check (the release predates builds per type, 0.43)")
+        return
+    r = json.loads(path.read_text())
+    for err in r.get("errors", []):
+        problems.append(f"{engine} type box: script error: {err}")
+    if not r.get("inHtml"):
+        problems.append(f"{engine} type box: the spirit build isn't in the page's HTML")
+    default_first = "Extra Regen"
+    for size in ("phone", "pc"):
+        v = r.get(size) or {}
+        where = f"{engine} {size} type box"
+        print(f"{where}: " + json.dumps({k: (x.get("value"), x.get("boxTop"), (x.get("items") or [None])[0], x.get("note"))
+                                         for k, x in v.items() if isinstance(x, dict) and "items" in x}))
+        off = v.get("noScript", {})
+        if off.get("boxShown") or (off.get("items") or [None])[0] != default_first or off.get("note"):
+            problems.append(f"{where}: with JavaScript off, the default build should show without the box ({off})")
+        tops = set()
+        for state, value, first, note in (("start", "gun", default_first, ""), ("spirit", "spirit", "Spirit test item (lane)", ""),
+                                          ("hybrid", "hybrid", default_first, "(No hybrid build for Abrams yet, showing the default.)"),
+                                          ("any", "", default_first, ""), ("gun", "gun", default_first, "")):
+            x = v.get(state, {})
+            tops.add(x.get("boxTop"))
+            if not x.get("boxShown") or x.get("value") != value or (x.get("items") or [None])[0] != first \
+                    or (x.get("quick") or [None])[0] != first or x.get("note") != note:
+                problems.append(f"{where} {state}: {x}")
+            if not x.get("boxUnderButton") or x.get("boxHeight", 0) < 44 or not x.get("boxFits") or x.get("horizontalScroll"):
+                problems.append(f"{where} {state}: the box should be under the web app button, 44 px tall, inside the box, "
+                                f"no sideways scroll ({x})")
+            if x.get("h1") != ["How to counter Abrams in Deadlock"]:
+                problems.append(f"{where} {state}: H1 is {x.get('h1')}")
+        if len(tops) != 1:
+            problems.append(f"{where}: the box moves when the type changes ({sorted(map(str, tops))})")
+        if (v.get("otherHero") or {}).get("hasBox") is not False:
+            problems.append(f"{where}: a hero without builds has a type box ({v.get('otherHero')})")
+        if v.get("adToBox") is not None and v["adToBox"] < MIN_GAP:
+            problems.append(f"{where}: the ad is {v['adToBox']} px from the type box (needs {MIN_GAP})")
 
 
 def check_hero_list(engine, size, where, view, heroes, cards):
@@ -317,7 +425,11 @@ for report_file in sorted(after.glob("*-report.json")):
         problems.append(f"{engine} PC About page changed in {changed}")
 
 for report_file in sorted(after.glob("*-report.json")):
-    check_counter_pages(report_file.name.split("-")[0], json.loads(report_file.read_text()))
+    engine = report_file.name.split("-")[0]
+    report = json.loads(report_file.read_text())
+    check_counter_pages(engine, report)
+    check_widths(engine, report)
+    check_typebox(engine, after / f"{engine}-typebox.json")
 
 if not list(after.glob("*-report.json")):
     problems.append("no reports found")

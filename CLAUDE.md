@@ -45,9 +45,13 @@ hand in short numbered steps.
   their text, change the profile in the private repo; to change their look
   or layout, change `build-pages.py` (they take the styles, sidebar,
   settings block, AdSense script and analytics snippet from `index.html`).
-  The same script gives each copy of `index.html` its own title,
-  description and canonical address. `og-image.png` is the link preview
-  picture (1200x630) and `robots.txt` points to the sitemap.
+  The same script gives each copy of `index.html` its own title, description
+  and canonical address. A hero whose profile has builds per damage type
+  (0.43 and later, `<counters type="...">`) gets a "Type (optional)" box on
+  its page; every build is in the HTML and the default shows without
+  JavaScript. The script must keep working with release zips from before 0.43
+  (no builds), so it reads them with `getattr`. `og-image.png` is the link
+  preview picture (1200x630) and `robots.txt` points to the sitemap.
 - Pages publishes a given commit only once: deploying the same commit again
   reports success but keeps the old files. So on a release or "Run workflow",
   `deploy-site.yml` first commits `.github/live-release.txt` to `main` and
@@ -57,6 +61,9 @@ hand in short numbered steps.
 - Website text: short, plain, natural. No em dashes or en dashes.
 - Version numbers and download links come from the GitHub releases API
   automatically; don't hardcode new versions.
+- The sidebar menu: one line per item everywhere. PC: one column; tablets
+  (700 to 820 px): one row of four; phones: two columns of two. The layout
+  check tests it at every width from 320 to 1440 px.
 - If the repo has tests, run them before opening a PR. The layout check
   (`.github/layout-check/`) runs on GitHub for pull requests; locally it
   needs Node.js, Playwright and Pillow (see `layout-check.yml`).

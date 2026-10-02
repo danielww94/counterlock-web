@@ -38,7 +38,12 @@
 // lists (names in page order, type headings if any). Every page with the
 // sidebar also reports how each menu item is drawn (text per line, size, line
 // spacing), for the "Hero Counters" / "Counter Profiles" check. Unknown
-// addresses get 404.html, like on GitHub Pages. In Chromium it also opens
+// addresses get 404.html, like on GitHub Pages.
+//
+// Then the sidebar menu at every width from a small phone to a PC (WIDTHS
+// below): on every page with the sidebar, where each menu item is, its lines,
+// size, whether its text overflows, and whether the page scrolls sideways.
+// Screenshots of the top of About at a few of those widths. In Chromium it also opens
 // /app/?enemy=abrams (the counter pages' button) and notes which enemy the
 // web version picked. The site's sitemap.xml, robots.txt and 404.html are
 // read straight from the folder.
@@ -222,6 +227,36 @@ function pageFacts() {
     heroLinks: [...new Set([...document.querySelectorAll('main a[href^="/counter/"]')].map((a) => a.getAttribute("href")))]
       .filter((h) => h !== "/counter/").length,
     privacyLink: !!document.querySelector('.side a[href="/privacy/"]'),
+  };
+}
+
+// Phones, tablets (portrait and landscape) and PCs, for the menu sweep.
+const WIDTHS = [320, 360, 375, 393, 412, 430, 768, 820, 834, 1024, 1280, 1440];
+const SWEEP_PAGES = { about: "", download: "download/", profiles: "profiles/", privacy: "privacy/",
+  counter: COUNTER, counterIndex: "counter/", notFound: "no-such-page/" };
+const SWEEP_SHOTS = [320, 393, 768, 834, 1280];
+
+// Run in the page: the menu's layout for the width sweep.
+function menuLayout() {
+  const side = document.querySelector(".side");
+  const style = getComputedStyle(side);
+  const inner = side.getBoundingClientRect().right - parseFloat(style.paddingRight);
+  return {
+    horizontalScroll: document.documentElement.scrollWidth > window.innerWidth,
+    sideInnerRight: Math.round(inner),
+    sideHeight: Math.round(side.getBoundingClientRect().height),
+    items: [...document.querySelectorAll(".side .navitem")].map((item) => {
+      const r = item.getBoundingClientRect();
+      const tick = item.querySelector(".tick").getBoundingClientRect();
+      // The text's own width (a range), which may be wider than the item.
+      const range = document.createRange();
+      range.selectNodeContents(item);
+      const text = range.getBoundingClientRect();
+      return { label: item.textContent.replace(/\s+/g, " ").trim(), left: Math.round(r.left), top: Math.round(r.top),
+        right: Math.round(r.right), width: Math.round(r.width), height: Math.round(r.height),
+        textRight: Math.round(text.right), overflow: item.scrollWidth > item.clientWidth + 1,
+        tickLeft: Math.round(tick.left), fontSize: getComputedStyle(item).fontSize };
+    }),
   };
 }
 
@@ -437,6 +472,33 @@ server.listen(0, async () => {
       on.pageErrors = adsErrors;
       report[`${size}-adsOn`] = on;
       await adsContext.close();
+    }
+
+    // The menu at every width, on every page with the sidebar.
+    const sweep = (report["widths"] = {});
+    for (const width of WIDTHS) {
+      const touch = width < 1000 ? { isMobile: true, hasTouch: true, deviceScaleFactor: 2 } : {};
+      const context = await browser.newContext({ viewport: { width, height: width < 700 ? 800 : 900 }, ...touch, reducedMotion: "reduce" });
+      await context.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.abort());
+      const page = await context.newPage();
+      for (const [key, address] of Object.entries(SWEEP_PAGES)) {
+        if (["counter", "counterIndex", "notFound"].includes(key) && !report["counterPages"]) continue;
+        if (address.endsWith("/") && !["counter", "counterIndex", "notFound"].includes(key)) {
+          await openPage(page, url, key, "off");
+        } else {
+          await page.goto(`${url}${address}?ads=off`);
+        }
+        await page.waitForTimeout(250);
+        try {
+          sweep[`${width}-${key}`] = { ...(await page.evaluate(menuLayout)), nav: await page.evaluate(navMetrics) };
+        } catch (e) {
+          sweep[`${width}-${key}`] = { error: String(e).split("\n")[0] };
+        }
+        if (key === "about" && SWEEP_SHOTS.includes(width)) {
+          await page.screenshot({ path: path.join(out, `${engine}-width-${width}-about.png`) });
+        }
+      }
+      await context.close();
     }
 
     // The counter pages' button: /app/?enemy=abrams opens the web version
