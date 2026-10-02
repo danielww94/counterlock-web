@@ -1,5 +1,5 @@
 Written by the "Deploy site" workflow. Don't edit.
 GitHub Pages only publishes a commit once, so every deploy gets a new one.
 
-Latest release: v0.41
-Run: https://github.com/danielww94/counterlock-web/actions/runs/36859835050 (attempt 1)
+Latest release: v0.42
+Run: https://github.com/danielww94/counterlock-web/actions/runs/37008911278 (attempt 1)
