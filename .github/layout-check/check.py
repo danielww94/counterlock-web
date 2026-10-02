@@ -38,8 +38,7 @@
   later; typebox.cjs on a test copy where Abrams has a spirit build): with
   JavaScript off the default build shows and the box doesn't, every build is
   in the HTML; with it on the box shows under the web app button, starts at
-  Gun, is at least 44 px tall, switches the items (and the quick answer)
-  without moving, Hybrid shows the default with "(No hybrid build for Abrams
+  Gun, is at least 44 px tall, switches the items without moving, Hybrid shows the default with "(No hybrid build for Abrams
   yet, showing the default.)", and a hero without builds has no box.
 - If the pull request changes the sidebar's menu or how it is drawn, the About
   comparison covers only the page content (right of the sidebar).
@@ -48,7 +47,8 @@
   pages, one H1 "How to counter Abrams in Deadlock", its own title,
   description and canonical address, a share picture, BreadcrumbList data
   matching the breadcrumbs (Home > Counters > Abrams), the button to
-  /app/?enemy=abrams, a Download link, every hero, the
+  /app/?enemy=abrams and a Download link above the threat profile, no
+  "Quick answer" box, every hero, the
   Privacy & rules link, analytics, no horizontal scrolling, and the ad rules
   above (ads off: nothing; ads on: one 250 px box, at least 150 px from any
   button, link or fold-out). Browse all heroes and /counter/ are one list of
@@ -204,7 +204,7 @@ def check_typebox(engine, path):
             x = v.get(state, {})
             tops.add(x.get("boxTop"))
             if not x.get("boxShown") or x.get("value") != value or (x.get("items") or [None])[0] != first \
-                    or (x.get("quick") or [None])[0] != first or x.get("note") != note:
+                    or x.get("note") != note:
                 problems.append(f"{where} {state}: {x}")
             if not x.get("boxUnderButton") or x.get("boxHeight", 0) < 44 or not x.get("boxFits") or x.get("horizontalScroll"):
                 problems.append(f"{where} {state}: the box should be under the web app button, 44 px tall, inside the box, "
@@ -269,6 +269,10 @@ def check_counter_pages(engine, report):
             problems.append(f"{where}: BreadcrumbList data is {names}")
         if v.get("primary") != ["Open Abrams in the Counterlock web app", "/app/?enemy=abrams"]:
             problems.append(f"{where}: the main button is {v.get('primary')}")
+        if not v.get("buttonsAboveSections"):
+            problems.append(f"{where}: the web app button and Download link should be above the threat profile")
+        if v.get("quickAnswer"):
+            problems.append(f"{where}: the page still has a quick answer box")
         if not v.get("downloadLink") or not v.get("privacyLink"):
             problems.append(f"{where}: the Download or Privacy & rules link is missing")
         if v.get("navCurrent") != ["Hero Counters"]:

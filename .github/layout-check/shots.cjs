@@ -216,6 +216,17 @@ function pageFacts() {
     }),
     primary: primary ? [primary.textContent.trim(), primary.getAttribute("href")] : null,
     downloadLink: !!document.querySelector('main a[href="/download/"]'),
+    // Counter pages: the web app button and Download link come before the
+    // first section heading (Threat profile), and there is no quick answer box.
+    buttonsAboveSections: (() => {
+      const dl = document.querySelector('main a[href="/download/"]');
+      const sec = document.querySelector("main h2.sec");
+      if (!primary || !dl || !sec) return false;
+      const top = sec.getBoundingClientRect().top;
+      return primary.getBoundingClientRect().bottom <= top && dl.getBoundingClientRect().bottom <= top;
+    })(),
+    quickAnswer: !!document.querySelector("main .quick, main .quick-builds")
+      || /\bQuick answer\b/i.test(document.querySelector("main") ? document.querySelector("main").textContent : ""),
     navCurrent: [...document.querySelectorAll(".navitem[aria-current]")].map((a) => a.textContent.trim()),
     // The hero lists (/counter/ cards, "Browse all heroes" links): one list,
     // names in page order, no type headings, and the short line on each card.

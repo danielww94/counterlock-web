@@ -45,7 +45,7 @@ function view() {
   const pick = document.querySelector(".type-pick");
   const box = pick && pick.querySelector("select");
   const note = pick && pick.querySelector(".type-note");
-  const button = document.querySelector(".quick .btn.primary");
+  const button = document.querySelector("main .hero-actions .btn.primary");
   const b = button && button.getBoundingClientRect();
   const p = visible(pick) ? pick.getBoundingClientRect() : null;
   return {
@@ -54,12 +54,11 @@ function view() {
     options: box ? [...box.options].map((o) => o.textContent) : [],
     note: visible(note) ? note.textContent : "",
     items: [...document.querySelectorAll("main .items li b")].filter(visible).map((el) => el.textContent),
-    quick: [...document.querySelectorAll(".quick ol li b")].filter(visible).map((el) => el.textContent),
     headings: [...document.querySelectorAll("main h2.sec")].filter(visible).map((el) => el.textContent.trim()),
-    boxUnderButton: !!(p && b && p.top >= b.bottom - 1 && pick.closest(".quick")),
+    boxUnderButton: !!(p && b && p.top >= b.bottom - 1 && pick.closest(".hero-actions")),
     boxHeight: visible(box) ? Math.round(box.getBoundingClientRect().height) : 0,
     boxTop: visible(box) ? Math.round(box.getBoundingClientRect().top + window.scrollY) : null,
-    boxFits: !p || (p.right <= document.querySelector(".quick").getBoundingClientRect().right + 0.5),
+    boxFits: !p || (p.right <= document.querySelector(".hero-actions").getBoundingClientRect().right + 0.5),
     horizontalScroll: document.documentElement.scrollWidth > window.innerWidth,
     h1: [...document.querySelectorAll("h1")].map((h) => h.textContent.trim()),
   };
@@ -112,7 +111,7 @@ server.listen(0, async () => {
         await page.selectOption(".type-pick select", type);
         r[type || "any"] = await page.evaluate(view);
         if (type === "spirit" || type === "hybrid") {
-          await page.locator(".quick").screenshot({ path: path.join(out, `${engine}-${size}-typebox-${type}.png`) });
+          await page.locator(".hero-actions").screenshot({ path: path.join(out, `${engine}-${size}-typebox-${type}.png`) });
         }
       }
       await page.goto(`${url}counter/${other}/?ads=off`);
