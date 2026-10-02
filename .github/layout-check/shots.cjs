@@ -34,7 +34,10 @@
 //
 // The counter pages (.github/build-pages.py): /counter/abrams/ and /counter/
 // get the same layout, ads and analytics checks, plus their search details
-// (title, one H1, description, canonical address, breadcrumbs). Unknown
+// (title, one H1, description, canonical address, breadcrumbs) and their hero
+// lists (names in page order, type headings if any). Every page with the
+// sidebar also reports how each menu item is drawn (text per line, size, line
+// spacing), for the "Hero Counters" / "Counter Profiles" check. Unknown
 // addresses get 404.html, like on GitHub Pages. In Chromium it also opens
 // /app/?enemy=abrams (the counter pages' button) and notes which enemy the
 // web version picked. The site's sitemap.xml, robots.txt and 404.html are
@@ -150,6 +153,29 @@ function measureAd(name) {
   };
 }
 
+// Run in the page: how each sidebar menu item is drawn: its text on each line
+// (a word's line is where its letters are), size, line spacing and height.
+function navMetrics() {
+  return [...document.querySelectorAll(".side .navitem")].map((item) => {
+    const lines = [];
+    const walker = document.createTreeWalker(item, NodeFilter.SHOW_TEXT);
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      for (let i = 0; i < node.length; i++) {
+        if (!node.data[i].trim()) { if (lines.length) lines[lines.length - 1].text += " "; continue; }
+        const range = document.createRange();
+        range.setStart(node, i);
+        range.setEnd(node, i + 1);
+        const top = Math.round(range.getBoundingClientRect().top);
+        if (!lines.length || lines[lines.length - 1].top !== top) lines.push({ top, text: "" });
+        lines[lines.length - 1].text += node.data[i];
+      }
+    }
+    const style = getComputedStyle(item);
+    return { label: item.textContent.replace(/\s+/g, " ").trim(), lines: lines.map((l) => l.text.trim()),
+      fontSize: style.fontSize, lineHeight: style.lineHeight, height: Math.round(item.getBoundingClientRect().height) };
+  });
+}
+
 // Run in the page: layout numbers, ads and analytics, and the search details.
 function pageFacts() {
   const side = document.querySelector(".side").getBoundingClientRect();
@@ -186,7 +212,13 @@ function pageFacts() {
     primary: primary ? [primary.textContent.trim(), primary.getAttribute("href")] : null,
     downloadLink: !!document.querySelector('main a[href="/download/"]'),
     navCurrent: [...document.querySelectorAll(".navitem[aria-current]")].map((a) => a.textContent.trim()),
-    groups: [...document.querySelectorAll("main h3.group, main .hero-cards")].length,
+    // The hero lists (/counter/ cards, "Browse all heroes" links): one list,
+    // names in page order, no type headings, and the short line on each card.
+    heroLists: document.querySelectorAll("main .hero-cards, main .hero-links").length,
+    heroNames: [...document.querySelectorAll("main .hero-cards b, main .hero-links a")].map((el) => el.textContent.trim()),
+    cardLines: document.querySelectorAll("main .hero-cards small").length,
+    typeHeadings: [...document.querySelectorAll("main h2, main h3")].map((h) => h.textContent.trim())
+      .filter((t) => /\b(gun|spirit|hybrid|other)\b/i.test(t)),
     heroLinks: [...new Set([...document.querySelectorAll('main a[href^="/counter/"]')].map((a) => a.getAttribute("href")))]
       .filter((h) => h !== "/counter/").length,
     privacyLink: !!document.querySelector('.side a[href="/privacy/"]'),
@@ -247,6 +279,7 @@ server.listen(0, async () => {
           };
         });
         report[`${size}-${tab}`].adRequests = [...adRequests];
+        report[`${size}-${tab}`].nav = await page.evaluate(navMetrics);
         if (tab === "about") {
           const src = (await shot.getAttribute("src")) || "";
           report["shotImage"] = crypto.createHash("sha256").update(src).digest("hex");
@@ -271,13 +304,13 @@ server.listen(0, async () => {
           await page.waitForTimeout(500);
           await page.screenshot({ path: path.join(out, `${engine}-${size}-${key}.png`) });
           await page.screenshot({ path: path.join(out, `${engine}-${size}-${key}-full.png`), fullPage: true });
-          report[`${size}-${key}`] = { ...(await page.evaluate(pageFacts)), adRequests: [...adRequests] };
+          report[`${size}-${key}`] = { ...(await page.evaluate(pageFacts)), nav: await page.evaluate(navMetrics), adRequests: [...adRequests] };
         }
         // An unknown address shows 404.html.
         const lost = await page.goto(`${url}no-such-page/`);
         // (No AdSense script there, so it stays out of the ads-off checks.)
         const { adsSetting, ...facts } = await page.evaluate(pageFacts);
-        report[`${size}-notFound`] = { status: lost.status(), ...facts,
+        report[`${size}-notFound`] = { status: lost.status(), ...facts, nav: await page.evaluate(navMetrics),
           links: await page.$$eval("main a", (as) => as.map((a) => a.getAttribute("href"))) };
         await page.screenshot({ path: path.join(out, `${engine}-${size}-404.png`) });
       }

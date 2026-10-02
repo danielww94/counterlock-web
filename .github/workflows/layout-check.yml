@@ -30,6 +30,10 @@
 #     breadcrumbs, the ad rules, analytics), /counter/, 404.html,
 #     sitemap.xml and robots.txt, and that /app/?enemy=abrams opens the web
 #     version with Abrams picked.
+#   - The sidebar's "Hero Counters" is drawn like "Counter Profiles" on every
+#     page (same size and line spacing; two lines at PC size, one on a phone),
+#     and "Browse all heroes" and /counter/ are one A to Z list, no type
+#     headings.
 #
 # Before and after screenshots (About, Download, Counter Profiles, Privacy)
 # from both engines are kept under the run's "Artifacts" for 14 days. The scripts are in .github/layout-check/. None of

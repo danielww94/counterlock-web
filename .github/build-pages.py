@@ -9,7 +9,7 @@ version in app/. This script adds:
   - Search details for each copy of index.html: its own title, description,
     canonical address and share preview (Open Graph, X), and the
     SoftwareApplication details only on / and /download/.
-  - The counter pages: /counter/ (every hero by type) and one page per enemy
+  - The counter pages: /counter/ (every hero, A to Z) and one page per enemy
     hero at /counter/<hero>/, made from the counter profile inside app/, the
     same profile the web version starts with. They read it with the app's own
     Python (app/core.zip), so they always match the app and update with every
@@ -48,7 +48,6 @@ PAGE_DESCRIPTIONS = {
                "and the rules for profiles shared in the Counter Profiles library.",
 }
 PAGE_PATHS = {"about": "/", "download": "/download/", "profiles": "/profiles/", "privacy": "/privacy/"}
-TYPE_ORDER = (("gun", "Gun heroes"), ("spirit", "Spirit heroes"), ("hybrid", "Hybrid heroes"))
 TIPS_OPEN_LIMIT = 4  # more heroes with tips than this: each hero's tips fold away
 
 esc = html.escape
@@ -257,23 +256,19 @@ def breadcrumbs(trail: list[tuple[str, str]]) -> tuple[str, dict]:
     return markup, data
 
 
-def hero_groups(profile, current: str = "") -> str:
-    """Every enemy with a counter page, as links grouped by type."""
-    out = []
-    heroes = [h for h in profile.heroes_sorted() if h.hero_id in profile.enemies]
-    groups = [(t, label, [h for h in heroes if h.hero_type == t]) for t, label in TYPE_ORDER]
-    others = [h for h in heroes if h.hero_type not in dict(TYPE_ORDER)]
-    if others:
-        groups.append(("other", "Other heroes", others))
-    for _type, label, members in groups:
-        if not members:
-            continue
-        links = []
-        for h in members:
-            mark = ' aria-current="page"' if h.hero_id == current else ""
-            links.append(f'<li><a href="/counter/{slug(h.hero_id)}/"{mark}>{esc(h.name)}</a></li>')
-        out.append(f'<h3 class="group">{esc(label)}</h3>\n<ul class="hero-links">{"".join(links)}</ul>')
-    return "\n".join(out)
+def enemy_heroes(profile) -> list:
+    """Every enemy with a counter page, A to Z by name. Not grouped by type:
+    a hero's type depends on the build (the app lets you pick one per matchup)."""
+    return sorted((h for h in profile.heroes.values() if h.hero_id in profile.enemies), key=lambda h: h.name.lower())
+
+
+def hero_list(profile, current: str = "") -> str:
+    """Links to every enemy's counter page, A to Z."""
+    links = []
+    for h in enemy_heroes(profile):
+        mark = ' aria-current="page"' if h.hero_id == current else ""
+        links.append(f'<li><a href="/counter/{slug(h.hero_id)}/"{mark}>{esc(h.name)}</a></li>')
+    return f'<ul class="hero-links">{"".join(links)}</ul>'
 
 
 COUNTER_CSS = """
@@ -307,7 +302,6 @@ COUNTER_CSS = """
 .tips-list .vs{padding:0 18px 14px 36px;margin:0;font-size:14px}
 .tips-list h3{font-family:var(--cond);text-transform:uppercase;letter-spacing:.03em;font-weight:600;font-size:16px;margin:14px 0 6px}
 .tips-list .open ul{padding:0 0 4px 20px}
-h3.group{font-family:var(--cond);text-transform:uppercase;letter-spacing:.04em;font-weight:600;font-size:16px;color:var(--bone);margin:22px 0 10px}
 .hero-links{display:flex;flex-wrap:wrap;gap:8px;list-style:none;padding:0;margin:0;max-width:760px}
 .hero-links a{display:inline-block;border:1px solid var(--line);padding:6px 12px;font-size:14px;color:var(--bone);text-decoration:none;transition:border-color .15s ease,color .15s ease}
 .hero-links a:hover,.hero-links a[aria-current]{border-color:var(--iris);color:var(--iris)}
@@ -452,7 +446,7 @@ def counter_page(site: Site, profile, phases, hero, version: str) -> str:
         out.append("      </div>")
 
     out.append('      <h2 class="sec">Browse all heroes</h2>')
-    out.append("      " + hero_groups(profile, hero.hero_id).replace("\n", "\n      "))
+    out.append("      " + hero_list(profile, hero.hero_id))
     out.append("    </section>")
     out.append(PAGE_SCRIPT)
     out.append(foot())
@@ -477,22 +471,13 @@ def counter_index(site: Site, profile, version: str) -> str:
     out.append('      <p class="lede">Pick the hero you are up against to see what to buy in lane, mid and late game, '
                'and how to play the matchup.</p>')
     out.append("      " + updated_line(profile))
-    heroes = [h for h in profile.heroes_sorted() if h.hero_id in profile.enemies]
-    groups = [(label, [h for h in heroes if h.hero_type == t]) for t, label in TYPE_ORDER]
-    others = [h for h in heroes if h.hero_type not in dict(TYPE_ORDER)]
-    if others:
-        groups.append(("Other heroes", others))
-    for label, members in groups:
-        if not members:
-            continue
-        out.append(f'      <h2 class="sec">{esc(label)}</h2>')
-        out.append('      <ul class="hero-cards">')
-        for h in members:
-            e = profile.enemies[h.hero_id]
-            line = first_sentence(e.key_principle) or first_sentence(e.threat_profile)
-            out.append(f'        <li><a href="/counter/{slug(h.hero_id)}/"><b>{esc(h.name)}</b>'
-                       + (f"<small>{esc(line)}</small>" if line else "") + "</a></li>")
-        out.append("      </ul>")
+    out.append('      <ul class="hero-cards">')
+    for h in enemy_heroes(profile):
+        e = profile.enemies[h.hero_id]
+        line = first_sentence(e.key_principle) or first_sentence(e.threat_profile)
+        out.append(f'        <li><a href="/counter/{slug(h.hero_id)}/"><b>{esc(h.name)}</b>'
+                   + (f"<small>{esc(line)}</small>" if line else "") + "</a></li>")
+    out.append("      </ul>")
     out.append('      <div class="callout">The same counters are in the Counterlock app, on your PC or in your '
                'browser, where you can also pick your own hero and edit the profile. '
                '<a class="inline-link" href="/download/">Get Counterlock</a></div>')
@@ -566,7 +551,7 @@ def main() -> None:
     if loaded:
         profile, phases = loaded
         counter_date = max(iso_date(profile.date) or pages_date, pages_date)
-        heroes = [h for h in profile.heroes_sorted() if h.hero_id in profile.enemies]
+        heroes = enemy_heroes(profile)
         (counter_dir / "index.html").write_text(counter_index(site, profile, version), encoding="utf-8")
         entries.append(("/counter/", counter_date))
         for hero in heroes:
