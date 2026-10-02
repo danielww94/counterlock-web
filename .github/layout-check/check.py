@@ -23,18 +23,23 @@
 - Cloudflare Web Analytics loads on every page (a stand-in, see shots.cjs),
   and counts the sidebar buttons, the Privacy & rules link, Back and Forward
   as page views, each under the page's own address.
-- If the pull request changes the sidebar's menu, the About comparison
-  covers only the page content (right of the sidebar).
+- Sidebar menu: "Hero Counters" is drawn like "Counter Profiles" on every
+  page that has the sidebar (the four main pages, both counter pages, 404):
+  same text size, line spacing and height. At PC size both are on two lines
+  (HERO / COUNTERS, COUNTER / PROFILES); at phone size both are on one line.
+- If the pull request changes the sidebar's menu or how it is drawn, the About
+  comparison covers only the page content (right of the sidebar).
 - Counter pages (when the site has them, made from the latest release):
   /counter/abrams/ at phone and PC size has the same layout as the other
   pages, one H1 "How to counter Abrams in Deadlock", its own title,
   description and canonical address, a share picture, BreadcrumbList data
   matching the breadcrumbs (Home > Counters > Abrams), the button to
-  /app/?enemy=abrams, a Download link, every hero grouped by type, the
+  /app/?enemy=abrams, a Download link, every hero, the
   Privacy & rules link, analytics, no horizontal scrolling, and the ad rules
   above (ads off: nothing; ads on: one 250 px box, at least 150 px from any
-  button, link or fold-out). /counter/ lists every hero by type and shows no
-  ads. Unknown addresses get 404.html with links to Home, the counters and
+  button, link or fold-out). Browse all heroes and /counter/ are one list of
+  every hero, A to Z, with no type headings; /counter/ keeps the short line
+  under each hero name. /counter/ shows no ads. Unknown addresses get 404.html with links to Home, the counters and
   Download.
 - sitemap.xml lists every page, each counter page included, with a date;
   robots.txt points to it; ads.txt is still there.
@@ -85,13 +90,47 @@ def check_ad_box(engine, size, key, ad):
         problems.append(f"{engine} {size} {key}: the ad is {ad['nearestControl']} px from {ad['nearestName']} (needs {MIN_GAP})")
 
 
+def check_nav(engine, size, where, nav):
+    """Hero Counters looks like Counter Profiles: same size, line spacing and
+    height, two lines at PC size and one on a phone."""
+    by_label = {item["label"]: item for item in nav or []}
+    profiles, counters = by_label.get("Counter Profiles"), by_label.get("Hero Counters")
+    if not profiles or not counters:
+        problems.append(f"{engine} {size} {where}: the sidebar needs Counter Profiles and Hero Counters ({list(by_label)})")
+        return
+    print(f"{engine} {size} {where} sidebar: Counter Profiles {profiles['lines']} Hero Counters {counters['lines']}")
+    for key in ("fontSize", "lineHeight", "height"):
+        if profiles[key] != counters[key]:
+            problems.append(f"{engine} {size} {where}: Hero Counters {key} {counters[key]} differs from Counter Profiles {profiles[key]}")
+    want = (["Counter", "Profiles"], ["Hero", "Counters"]) if size == "pc" else (["Counter Profiles"], ["Hero Counters"])
+    got = tuple([line.strip() for line in item["lines"]] for item in (profiles, counters))
+    if got != want:
+        problems.append(f"{engine} {size} {where}: sidebar lines are {got[0]} and {got[1]}, expected {want[0]} and {want[1]}")
+
+
+def check_hero_list(engine, size, where, view, heroes, cards):
+    """One list of every hero, A to Z, no type headings (a hero's type
+    depends on the build)."""
+    names = view.get("heroNames") or []
+    if view.get("heroLists") != 1:
+        problems.append(f"{where}: {view.get('heroLists')} hero lists instead of 1")
+    if view.get("typeHeadings"):
+        problems.append(f"{where}: type headings {view.get('typeHeadings')}")
+    if len(names) != heroes or len(set(names)) != heroes:
+        problems.append(f"{where}: {len(names)} hero names ({len(set(names))} different) for {heroes} heroes")
+    elif names != sorted(names, key=str.lower):
+        problems.append(f"{where}: heroes aren't A to Z: {names}")
+    if cards and view.get("cardLines") != heroes:
+        problems.append(f"{where}: the short line shows under {view.get('cardLines')} of {heroes} heroes")
+
+
 def check_counter_pages(engine, report):
     if not report.get("counterPages"):
         print(f"::warning::{engine}: the site has no counter pages (no Counterlock-web.zip?), so they weren't checked")
         return
     for size in ("phone", "pc"):
         v = report.get(f"{size}-counter", {})
-        print(f"{engine} {size} counter page: {json.dumps({k: v.get(k) for k in ('title', 'h1', 'canonical', 'description', 'crumbs', 'primary', 'sideHeight', 'contentStartsAfterSidebar', 'heroLinks', 'groups')})}")
+        print(f"{engine} {size} counter page: {json.dumps({k: v.get(k) for k in ('title', 'h1', 'canonical', 'description', 'crumbs', 'primary', 'sideHeight', 'contentStartsAfterSidebar', 'heroLists', 'cardLines')})}")
         where = f"{engine} {size} /counter/abrams/"
         if size == "phone":
             if not 0 <= v.get("contentStartsAfterSidebar", -1) <= 1 or v.get("sideHeight", 9999) >= 852:
@@ -124,19 +163,24 @@ def check_counter_pages(engine, report):
         if v.get("navCurrent") != ["Hero Counters"]:
             problems.append(f"{where}: the sidebar marks {v.get('navCurrent')} as the open page")
         heroes = len(report["siteFiles"]["counterFolders"])
-        if v.get("heroLinks") != heroes or v.get("groups", 0) < 3:
-            problems.append(f"{where}: Browse all heroes links {v.get('heroLinks')} of {heroes} heroes in {v.get('groups')} groups")
+        if v.get("heroLinks") != heroes:
+            problems.append(f"{where}: Browse all heroes links {v.get('heroLinks')} of {heroes} heroes")
+        check_hero_list(engine, size, f"{where} Browse all heroes", v, heroes, cards=False)
+        check_nav(engine, size, "/counter/abrams/", v.get("nav"))
         if v.get("adBoxes") != 1:
             problems.append(f"{where}: {v.get('adBoxes')} ad positions instead of 1")
         idx = report.get(f"{size}-counterIndex", {})
         if idx.get("h1") != ["Deadlock counters for every hero"] or idx.get("canonical") != f"{SITE_URL}/counter/" \
-                or idx.get("heroLinks") != heroes or idx.get("groups", 0) < 3 or idx.get("horizontalScroll"):
-            problems.append(f"{engine} {size} /counter/: {json.dumps({k: idx.get(k) for k in ('h1', 'canonical', 'heroLinks', 'groups', 'horizontalScroll')})}")
+                or idx.get("heroLinks") != heroes or idx.get("horizontalScroll"):
+            problems.append(f"{engine} {size} /counter/: {json.dumps({k: idx.get(k) for k in ('h1', 'canonical', 'heroLinks', 'horizontalScroll')})}")
+        check_hero_list(engine, size, f"{engine} {size} /counter/", idx, heroes, cards=True)
+        check_nav(engine, size, "/counter/", idx.get("nav"))
         lost = report.get(f"{size}-notFound", {})
         print(f"{engine} {size} 404: status {lost.get('status')}, links {lost.get('links')}")
         if lost.get("status") != 404 or not {"/", "/counter/", "/download/"} <= set(lost.get("links") or []) \
                 or lost.get("visibleAds") or not lost.get("analytics") or lost.get("horizontalScroll"):
             problems.append(f"{engine} {size}: unknown addresses don't get a 404 page linking Home, Counters and Download ({lost})")
+        check_nav(engine, size, "404", lost.get("nav"))
         on = report.get(f"{size}-adsOn", {})
         if on.get("switchedOn"):
             check_ad_box(engine, size, "counter", on.get("counter", {}))
@@ -175,6 +219,8 @@ for report_file in sorted(after.glob("*-report.json")):
               f"{phone['contentStartsAfterSidebar']} px after it; PC sidebar {pc['sideHeight']} px")
         if not 0 <= phone["contentStartsAfterSidebar"] <= 1:
             problems.append(f"{engine} phone {tab}: content starts {phone['contentStartsAfterSidebar']} px after the sidebar")
+        check_nav(engine, "phone", tab, phone.get("nav"))
+        check_nav(engine, "pc", tab, pc.get("nav"))
         if phone["sideHeight"] >= 852:
             problems.append(f"{engine} phone {tab}: the sidebar is a whole screen tall ({phone['sideHeight']} px)")
         if pc["sideHeight"] != 900 or pc["contentTop"] != 0:
@@ -195,6 +241,8 @@ for report_file in sorted(after.glob("*-report.json")):
             problems.append(f"{engine} {key}: Cloudflare Web Analytics didn't load")
     print(f"{engine} ads off: ad files asked for: {report['pc-about'].get('adRequests')}")
     for size in ("phone", "pc"):
+        for tab in ("profiles", "privacy"):
+            check_nav(engine, size, tab, report[f"{size}-{tab}"].get("nav"))
         # Each page opened by its own address shows there, with its own title.
         titles = {tab: report[f"{size}-{tab}"].get("title") for tab in PATHS}
         print(f"{engine} {size} titles: {json.dumps(titles)}")
@@ -257,10 +305,12 @@ for report_file in sorted(after.glob("*-report.json")):
     # A pull request that changes the sidebar's menu changes the sidebar on
     # purpose: then compare the page content only.
     old_nav, new_nav = old_report["pc-about"].get("navLabels"), report["pc-about"].get("navLabels")
-    if old_nav != new_nav:
+    old_drawn = [(n["label"], n["lines"], n["height"]) for n in old_report["pc-about"].get("nav") or []]
+    new_drawn = [(n["label"], n["lines"], n["height"]) for n in report["pc-about"].get("nav") or []]
+    if old_nav != new_nav or old_drawn != new_drawn:
         left = report["pc-about"]["sideRight"] * new.width // 1440
         old, new = old.crop((left, 0, old.width, old.height)), new.crop((left, 0, new.width, new.height))
-        note += f" (sidebar menu changed from {old_nav} to {new_nav}, compared the content only)"
+        note += f" (sidebar menu changed from {old_drawn or old_nav} to {new_drawn or new_nav}, compared the content only)"
     changed = ImageChops.difference(old, new).getbbox()
     print(f"{engine} PC About page{note}: {'unchanged' if changed is None else f'changed in {changed}'}")
     if changed is not None:

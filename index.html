@@ -685,6 +685,7 @@ document.documentElement.setAttribute('data-palette', ['green', 'mixed', 'purple
     .brand{margin-bottom:20px}
     nav.main{flex-direction:row;flex-wrap:wrap;gap:6px 22px}
     .navitem{font-size:20px;width:auto}
+    .navitem br.wide{display:none}
     .side .foot{margin-top:20px}
     main{padding:30px 22px 70px}
     h1.title{font-size:31px}
@@ -705,7 +706,7 @@ document.documentElement.setAttribute('data-palette', ['green', 'mixed', 'purple
       <button class="navitem" data-nav="about" aria-current="page"><span class="tick"></span>About</button>
       <button class="navitem" data-nav="download"><span class="tick"></span>Download</button>
       <button class="navitem" data-nav="profiles"><span class="tick"></span>Counter Profiles</button>
-      <a class="navitem" href="/counter/"><span class="tick"></span>Hero Counters</a>
+      <a class="navitem" href="/counter/"><span class="tick"></span><span>Hero<br class="wide"> Counters</span></a>
     </nav>
 
     <div class="foot">
