@@ -36,15 +36,31 @@ const SITE = {
   palette:       'purple', // site colours: 'purple', 'green', 'mixed' (green background, purple buttons)
                            //   or 'purple-green' (purple background, green buttons)
   ads:           'off',    // Google ads: 'off' shows none (only Google's site check runs), 'on' shows them
-                           //   on About and Download. Never in the web app (/app/).
+                           //   on About, Download and the counter pages. Never in the web app (/app/).
   adsPublisher:  'ca-pub-5955475673265987', // AdSense publisher ID, the same as in the AdSense script below
-  adSlots:       { about: '', download: '' }, // AdSense ad unit IDs (numbers only), one per ad position
+  adSlots:       { about: '', download: '', counter: '' }, // AdSense ad unit IDs (numbers only), one per ad position
 };
 document.documentElement.setAttribute('data-palette', ['green', 'mixed', 'purple-green'].includes(SITE.palette) ? SITE.palette : 'purple'); // applies the line above
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Counterlock · Counter items for Deadlock</title>
 <meta name="description" content="Counterlock is a companion for Deadlock, for Windows, Linux and your browser. Pick the hero you're up against and see the counter items to buy." />
+<!-- Search engines and link previews (Discord, X). This is the home page's;
+     .github/build-pages.py sets each page's own title, description and
+     address in its copy, and keeps the SoftwareApplication details on Home
+     and Download only. og-image.png is the preview picture. -->
+<link rel="canonical" href="https://getcounterlock.com/" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Counterlock" />
+<meta property="og:title" content="Counterlock · Counter items for Deadlock" />
+<meta property="og:description" content="Counterlock is a companion for Deadlock, for Windows, Linux and your browser. Pick the hero you're up against and see the counter items to buy." />
+<meta property="og:url" content="https://getcounterlock.com/" />
+<meta property="og:image" content="https://getcounterlock.com/og-image.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="Counterlock showing the counter items for an enemy hero in Deadlock" />
+<meta name="twitter:card" content="summary_large_image" />
+<script type="application/ld+json" id="ld-app">{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "Counterlock", "description": "A companion for Deadlock. Pick the hero you're up against and see the counter items to buy in lane, mid and late game, plus tips for the hero you play.", "url": "https://getcounterlock.com/", "downloadUrl": "https://getcounterlock.com/download/", "image": "https://getcounterlock.com/og-image.png", "applicationCategory": "GameApplication", "operatingSystem": "Windows, Linux, Web browser", "isAccessibleForFree": true, "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}}</script>
 <meta name="theme-color" content="#0a0713" />
 <link rel="icon" href="/favicon.ico" sizes="any" />
 <!-- Google AdSense. Lets Google check the site, and later serves the ads in
@@ -244,6 +260,7 @@ document.documentElement.setAttribute('data-palette', ['green', 'mixed', 'purple
     transform:rotate(45deg);
     transition:background .15s ease, box-shadow .15s ease;
   }
+  a.navitem{text-decoration:none}
   .navitem:hover{color:var(--bone)}
   .navitem:focus-visible{outline:2px solid var(--iris);outline-offset:4px}
   .navitem[aria-current="page"]{color:var(--iris)}
@@ -688,6 +705,7 @@ document.documentElement.setAttribute('data-palette', ['green', 'mixed', 'purple
       <button class="navitem" data-nav="about" aria-current="page"><span class="tick"></span>About</button>
       <button class="navitem" data-nav="download"><span class="tick"></span>Download</button>
       <button class="navitem" data-nav="profiles"><span class="tick"></span>Counter Profiles</button>
+      <a class="navitem" href="/counter/"><span class="tick"></span>Hero Counters</a>
     </nav>
 
     <div class="foot">
@@ -758,6 +776,10 @@ document.documentElement.setAttribute('data-palette', ['green', 'mixed', 'purple
 
       <h2 class="sec" id="links">Links &amp; support</h2>
       <div class="link-list">
+        <a class="link-row" href="/counter/">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6l7-3z" stroke-linejoin="round"/></svg>
+          <span><b>How to counter every hero</b><small>Counter items and tips for all heroes in Deadlock, on the website</small></span>
+        </a>
         <a class="link-row" id="ghRepo" href="#" target="_blank" rel="noopener noreferrer">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5" stroke-linecap="round" stroke-linejoin="round"/></svg>
           <span><b>Counterlock on GitHub</b><small>The website and every release, with its version history</small></span>
@@ -1269,7 +1291,7 @@ function show(name, fromNav){
   window.scrollTo(0,0);
   showAds(name);
 }
-document.querySelectorAll('.navitem').forEach(b=>{
+document.querySelectorAll('.navitem[data-nav]').forEach(b=>{
   b.addEventListener('click',()=>show(b.dataset.nav, true));
 });
 // Links to a page switch to it here, without loading the site again.
@@ -1304,6 +1326,8 @@ window.addEventListener('hashchange', followAddress);
   }));
 })();
 show(pageAt());
+// A link to a section of a page (/#help, from the counter pages' sidebar).
+{ const h = location.hash.slice(1), t = h && !pages.includes(h) && document.getElementById(h); if (t) t.scrollIntoView(); }
 
 /* ---------------- Small helpers ---------------- */
 const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

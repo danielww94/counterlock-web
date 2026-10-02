@@ -24,6 +24,12 @@
 #     the test isn't counted as a visit), all the ad checks above still pass
 #     with it, and page switches (sidebar buttons, links, Back, Forward)
 #     count as page views, each under its page's address.
+#   - The counter pages, made from the latest release's Counterlock-web.zip
+#     like deploy-site.yml does: /counter/abrams/ at phone and PC size (same
+#     layout, its own title, description, canonical address and one H1,
+#     breadcrumbs, the ad rules, analytics), /counter/, 404.html,
+#     sitemap.xml and robots.txt, and that /app/?enemy=abrams opens the web
+#     version with Abrams picked.
 #
 # Before and after screenshots (About, Download, Counter Profiles, Privacy)
 # from both engines are kept under the run's "Artifacts" for 14 days. The scripts are in .github/layout-check/. None of
@@ -34,7 +40,10 @@ on:
   pull_request:
     paths:
       - index.html
+      - robots.txt
+      - og-image.png
       - .github/build-site.sh
+      - .github/build-pages.py
       - .github/layout-check/**
       - .github/workflows/layout-check.yml
   workflow_dispatch:
@@ -82,12 +91,21 @@ jobs:
           npm install -g playwright@1.56
           playwright install --with-deps chromium webkit
           sudo chown -R "$USER" ~/apt-debs
+      - name: Web version from the latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # The same zip deploy-site.yml publishes at /app/ and makes the
+          # counter pages from. None yet: the sites are checked without them.
+          gh release download --repo "$GITHUB_REPOSITORY" --pattern Counterlock-web.zip --dir web-zip \
+            || echo "::warning::The latest release has no Counterlock-web.zip, so the counter pages aren't checked."
       - name: Both sites as they'd be published
         run: |
-          bash after/.github/build-site.sh before site-before
-          bash after/.github/build-site.sh after site-after
+          zip=$(ls web-zip/Counterlock-web.zip 2>/dev/null || true)
+          bash after/.github/build-site.sh before site-before $zip
+          bash after/.github/build-site.sh after site-after $zip
       - name: Screenshots and checks
-        timeout-minutes: 5
+        timeout-minutes: 10
         run: |
           export NODE_PATH="$(npm root -g)"
           for engine in chromium webkit; do

@@ -3,7 +3,10 @@
 # The site is this repo's files plus the web version of Counterlock at /app/,
 # unpacked from Counterlock-web.zip in the latest published release. Each page
 # of the site gets its own address (/download/, /profiles/, /privacy/), as a
-# copy of index.html made by .github/build-site.sh. Runs when
+# copy of index.html made by .github/build-site.sh. The counter pages
+# (/counter/ and /counter/<hero>/), 404.html and sitemap.xml are made from the
+# counter profile in that same zip (.github/build-pages.py), so they change
+# with every release by themselves. Runs when
 # you push to main, when you publish a release (so clicking "Publish release"
 # puts the new desktop downloads and the new web version live together), and
 # from the Actions tab ("Run workflow").
@@ -18,7 +21,7 @@
 # only lets main deploy.)
 #
 # If no release has Counterlock-web.zip yet, the site is published without
-# /app/, exactly as before. After publishing, the run waits until
+# /app/ and the counter pages. After publishing, the run waits until
 # getcounterlock.com/app/ really serves the new version, and fails if it
 # doesn't, so a green run means the site is up to date.
 #
@@ -92,13 +95,8 @@ jobs:
       version: ${{ steps.web.outputs.version }}
     steps:
       - uses: actions/checkout@v5
-
-      - name: Site files
-        run: |
-          # The repo's files, plus a copy of index.html as download/,
-          # profiles/ and privacy/ (see the script).
-          bash .github/build-site.sh . _site
-          ls -la _site
+        with:
+          fetch-depth: 0 # the dates of the last changes, for sitemap.xml
 
       - name: Web version from the latest release
         id: web
@@ -108,18 +106,25 @@ jobs:
           tag=$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName) || tag=""
           echo "Latest release: ${tag:-none}"
           if [ -n "$tag" ] && gh release download "$tag" --repo "$GITHUB_REPOSITORY" --pattern Counterlock-web.zip --dir /tmp/web; then
-            mkdir -p _site/app
-            unzip -q /tmp/web/Counterlock-web.zip -d _site/app
-            version=$(jq -r .version _site/app/version.json)
+            version=$(unzip -p /tmp/web/Counterlock-web.zip version.json | jq -r .version)
             echo "Web version: $version"
             if [ "v$version" != "$tag" ]; then
               echo "::error::Counterlock-web.zip in $tag says it is version $version. Rebuild the release so the numbers match."
               exit 1
             fi
+            echo "zip=/tmp/web/Counterlock-web.zip" >> "$GITHUB_OUTPUT"
             echo "version=$version" >> "$GITHUB_OUTPUT"
           else
-            echo "::warning::The latest release has no Counterlock-web.zip yet, so the site is published without /app/."
+            echo "::warning::The latest release has no Counterlock-web.zip yet, so the site is published without /app/ and the counter pages."
           fi
+
+      - name: Site files
+        run: |
+          # The repo's files, a copy of index.html as download/, profiles/
+          # and privacy/, the web version in app/, and the pages made from
+          # it: /counter/, 404.html and sitemap.xml (see the script).
+          bash .github/build-site.sh . _site ${{ steps.web.outputs.zip }}
+          ls -la _site
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
