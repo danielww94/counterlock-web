@@ -7,8 +7,10 @@
 # for developers (README.md, CLAUDE.md), plus a copy of index.html in a folder
 # for each page, so every page has a real address that Cloudflare Web
 # Analytics counts on its own (it ignores #...). index.html stays the only
-# source: the copies are made here and never committed. The page names must
-# match pagePath in index.html.
+# source: the copies are made here and never committed, and build-pages.py
+# then keeps only each address's own page in its copy (search engines see
+# one page per address; the page script fetches the others when needed).
+# The page names must match pagePath in index.html.
 #
 # With Counterlock-web.zip (from the latest release), the web version goes in
 # app/. Then build-pages.py, next to this script, adds the search details of

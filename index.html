@@ -15,7 +15,9 @@
 
      SITE.ads controls the Google AdSense ads. Keep it 'off' until AdSense
      has approved the site and the ad unit IDs are filled in. The web app
-     (/app/) never shows ads.
+     (/app/) and Privacy & rules never show ads. Counter Profiles also needs
+     SITE.profilesAds 'on', so it can wait until the library's moderation
+     is set up.
      ===================================================================== -->
 <script>
 const RELEASE = {
@@ -36,9 +38,11 @@ const SITE = {
   palette:       'purple', // site colours: 'purple', 'green', 'mixed' (green background, purple buttons)
                            //   or 'purple-green' (purple background, green buttons)
   ads:           'off',    // Google ads: 'off' shows none (only Google's site check runs), 'on' shows them
-                           //   on About, Download and the counter pages. Never in the web app (/app/).
+                           //   on About, Download, the /counter/ list and every hero page. Never in the web app (/app/).
+  profilesAds:   'off',    // ads on Counter Profiles as well: 'on' also needs ads 'on' (see the note at the top)
   adsPublisher:  'ca-pub-5955475673265987', // AdSense publisher ID, the same as in the AdSense script below
-  adSlots:       { about: '', download: '', counter: '' }, // AdSense ad unit IDs (numbers only), one per ad position
+  adSlots:       { about: '', download: '', profiles: '', counter: '' }, // AdSense ad unit IDs (numbers only), one per ad position;
+                           //   'counter' is shared by the /counter/ list and every hero page
 };
 document.documentElement.setAttribute('data-palette', ['green', 'mixed', 'purple-green'].includes(SITE.palette) ? SITE.palette : 'purple'); // applies the line above
 </script>
@@ -419,6 +423,7 @@ document.documentElement.setAttribute('data-palette', ['green', 'mixed', 'purple
   .tag{font-size:11px;color:var(--bone-dim);border:1px solid var(--line);padding:2px 8px;letter-spacing:.02em}
   .tag.patch{color:var(--iris);border-color:rgba(var(--glow-rgb),0.35)}
   .tag.fresh{color:var(--orchid);border-color:rgba(var(--orchid-rgb),0.4)}
+  .tag.flag{color:var(--orchid);border-color:rgba(var(--orchid-rgb),0.7)}
 
   .card .foot{
     display:flex;align-items:center;justify-content:space-between;gap:10px;
@@ -458,6 +463,8 @@ document.documentElement.setAttribute('data-palette', ['green', 'mixed', 'purple
   .ad-slot:has(ins[data-ad-status="unfilled"]){display:none}
   /* Linux ends with the icon download links, so keep the ad further away there. */
   #page-download:has(#osLin:not([hidden])) .ad-slot{margin-top:120px}
+  /* Counter Profiles: under the library, well clear of its buttons and links. */
+  #page-profiles .ad-slot{margin-top:160px}
 
   /* Support button (sidebar, shown on every page) */
   .support{
@@ -476,7 +483,7 @@ document.documentElement.setAttribute('data-palette', ['green', 'mixed', 'purple
 
   .side .foot .fan{font-size:11.5px;color:var(--bone-dim);opacity:.8;margin-top:12px}
 
-  /* Counter Profiles: "opening soon" panel, shown until the database is live */
+  /* Counter Profiles: "opening soon" note, added by the page script only if the library can't run */
   .soon{border:1px solid var(--line);background:var(--ink-2);padding:20px 24px;max-width:640px;margin:6px 0 0}
   .soon-label{font-family:var(--cond);text-transform:uppercase;letter-spacing:.06em;font-size:13px;color:var(--orchid);margin-bottom:8px}
   .soon p{margin:0;font-size:15px;color:var(--bone)}
@@ -723,9 +730,9 @@ document.documentElement.setAttribute('data-palette', ['green', 'mixed', 'purple
     </div>
 
     <nav class="main" aria-label="Primary">
-      <button class="navitem" data-nav="about" aria-current="page"><span class="tick"></span>About</button>
-      <button class="navitem" data-nav="download"><span class="tick"></span>Download</button>
-      <button class="navitem" data-nav="profiles"><span class="tick"></span>Counter Profiles</button>
+      <a class="navitem" href="/" data-nav="about" aria-current="page"><span class="tick"></span>About</a>
+      <a class="navitem" href="/download/" data-nav="download"><span class="tick"></span>Download</a>
+      <a class="navitem" href="/profiles/" data-nav="profiles"><span class="tick"></span>Counter Profiles</a>
       <a class="navitem" href="/counter/"><span class="tick"></span>Hero Counters</a>
     </nav>
 
@@ -736,20 +743,20 @@ document.documentElement.setAttribute('data-palette', ['green', 'mixed', 'purple
         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21s-6.9-4.35-9.5-8.28C.62 9.8 1.5 6.2 4.5 5.08c2.05-.77 4.28-.03 5.5 1.72L12 8.6l2-1.8c1.22-1.75 3.45-2.49 5.5-1.72 3 1.12 3.88 4.72 2 7.64C18.9 16.65 12 21 12 21Z"/></svg>
         <span>Support the developer</span>
       </a>
-      <a class="support alt" id="ghSponsorsSide" hidden href="#" target="_blank" rel="noopener noreferrer" aria-label="Sponsor the developer on GitHub (opens in a new tab)">
+      <a class="support alt" id="ghSponsorsSide" hidden target="_blank" rel="noopener noreferrer" aria-label="Sponsor the developer on GitHub (opens in a new tab)">
         <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21s-6.9-4.35-9.5-8.28C.62 9.8 1.5 6.2 4.5 5.08c2.05-.77 4.28-.03 5.5 1.72L12 8.6l2-1.8c1.22-1.75 3.45-2.49 5.5-1.72 3 1.12 3.88 4.72 2 7.64C18.9 16.65 12 21 12 21Z"/></svg>
         <span>Sponsor on GitHub</span>
       </a>
       <div class="fan">Fan-made. Not affiliated with Valve.</div>
       <div class="sidelinks">
-        <a href="/" data-jump="help">Help &amp; feedback</a>
+        <a href="/#help" data-jump="help">Help &amp; feedback</a>
         <a href="/privacy/">Privacy &amp; rules</a>
       </div>
     </div>
   </aside>
 
   <!-- ============ Content ============ -->
-  <main>
+  <main data-lazy-pages>
 
     <!-- ---------- About (home) ---------- -->
     <section class="page active" id="page-about" aria-labelledby="t-about">
@@ -786,7 +793,7 @@ document.documentElement.setAttribute('data-palette', ['green', 'mixed', 'purple
       <div class="help-card">
         <p>Found a bug, have an idea, or stuck with something? Write to this email. Every message is read.</p>
         <div class="help-mail" id="helpMailRow">
-          <a class="help-address" id="helpMail" href="#">feedback@</a>
+          <a class="help-address" id="helpMail" href="&#109;&#97;&#105;&#108;&#116;&#111;&#58;&#102;&#101;&#101;&#100;&#98;&#97;&#99;&#107;&#64;&#103;&#101;&#116;&#99;&#111;&#117;&#110;&#116;&#101;&#114;&#108;&#111;&#99;&#107;&#46;&#99;&#111;&#109;">&#102;&#101;&#101;&#100;&#98;&#97;&#99;&#107;&#64;&#103;&#101;&#116;&#99;&#111;&#117;&#110;&#116;&#101;&#114;&#108;&#111;&#99;&#107;&#46;&#99;&#111;&#109;</a>
           <button class="btn" type="button" id="copyMail">Copy address</button>
         </div>
         <div class="help-actions">
@@ -801,7 +808,7 @@ document.documentElement.setAttribute('data-palette', ['green', 'mixed', 'purple
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6l7-3z" stroke-linejoin="round"/></svg>
           <span><b>How to counter every hero</b><small>Counter items and tips for all heroes in Deadlock, on the website</small></span>
         </a>
-        <a class="link-row" id="ghRepo" href="#" target="_blank" rel="noopener noreferrer">
+        <a class="link-row" id="ghRepo" href="https://github.com/danielww94/counterlock-web" target="_blank" rel="noopener noreferrer">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5" stroke-linecap="round" stroke-linejoin="round"/></svg>
           <span><b>Counterlock on GitHub</b><small>The website and every release, with its version history</small></span>
         </a>
@@ -809,7 +816,7 @@ document.documentElement.setAttribute('data-palette', ['green', 'mixed', 'purple
           <svg class="heart" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21s-6.9-4.35-9.5-8.28C.62 9.8 1.5 6.2 4.5 5.08c2.05-.77 4.28-.03 5.5 1.72L12 8.6l2-1.8c1.22-1.75 3.45-2.49 5.5-1.72 3 1.12 3.88 4.72 2 7.64C18.9 16.65 12 21 12 21Z"/></svg>
           <span><b>Support on Ko-fi</b><small>A one-off tip helps keep Counterlock free</small></span>
         </a>
-        <a class="link-row" id="ghSponsorsRow" hidden href="#" target="_blank" rel="noopener noreferrer">
+        <a class="link-row" id="ghSponsorsRow" hidden target="_blank" rel="noopener noreferrer">
           <svg class="heart" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21s-6.9-4.35-9.5-8.28C.62 9.8 1.5 6.2 4.5 5.08c2.05-.77 4.28-.03 5.5 1.72L12 8.6l2-1.8c1.22-1.75 3.45-2.49 5.5-1.72 3 1.12 3.88 4.72 2 7.64C18.9 16.65 12 21 12 21Z"/></svg>
           <span><b>Sponsor on GitHub</b><small>One-off or monthly, through GitHub Sponsors</small></span>
         </a>
@@ -831,7 +838,7 @@ document.documentElement.setAttribute('data-palette', ['green', 'mixed', 'purple
       <div class="os-panel" id="osWin" hidden>
 
       <div class="dl-row">
-        <a class="dl" id="dlWin" href="#" onclick="return false" aria-label="Download Counterlock for Windows">
+        <a class="dl" id="dlWin" href="https://github.com/danielww94/counterlock-web/releases/latest/download/Counterlock.exe" aria-label="Download Counterlock for Windows">
           <svg viewBox="0 0 48 48" fill="currentColor" aria-hidden="true"><path d="M6 9.8 22 7.7v15.1H6V9.8Zm0 28.4 16 2.1V25.2H6v13ZM24 7.4 44 4.6v18.2H24V7.4Zm0 33.2 20 2.8V25.2H24v15.4Z"/></svg>
           <span>
             <span class="os">Windows</span>
@@ -839,7 +846,7 @@ document.documentElement.setAttribute('data-palette', ['green', 'mixed', 'purple
           </span>
         </a>
       </div>
-      <p class="verify">Verify your download: each release lists a checksum next to the file.</p>
+      <p class="verify" data-release>Release notes and the checksum are on the <a href="https://github.com/danielww94/counterlock-web/releases/latest" target="_blank" rel="noopener">release page</a>.</p>
 
       <h2 class="sec">Install on Windows</h2>
       <ol class="steps">
@@ -852,7 +859,7 @@ document.documentElement.setAttribute('data-palette', ['green', 'mixed', 'purple
 
       <div class="os-panel" id="osLin" hidden>
         <div class="dl-row">
-          <a class="dl" id="dlLin" href="#" onclick="return false" aria-label="Download Counterlock for Linux">
+          <a class="dl" id="dlLin" href="https://github.com/danielww94/counterlock-web/releases/latest/download/Counterlock" aria-label="Download Counterlock for Linux">
             <svg viewBox="0 0 48 48" fill="currentColor" aria-hidden="true"><path d="M24 4c-4.4 0-7 3.6-7 8.4 0 2.7-.2 4.6-1.6 7-2.6 4.3-6 8-6 12.8 0 1.9 1 3 2.6 3 .7 2.4 2.3 4.2 4.4 5 .7 1.4 2.4 2.6 4.7 2.6h5.8c2.3 0 4-1.2 4.7-2.6 2.1-.8 3.7-2.6 4.4-5 1.6 0 2.6-1.1 2.6-3 0-4.8-3.4-8.5-6-12.8-1.4-2.4-1.6-4.3-1.6-7C31 7.6 28.4 4 24 4Zm-3.5 9.2c.8 0 1.4.9 1.4 2s-.6 2-1.4 2-1.4-.9-1.4-2 .6-2 1.4-2Zm7 0c.8 0 1.4.9 1.4 2s-.6 2-1.4 2-1.4-.9-1.4-2 .6-2 1.4-2ZM24 20c2 0 4 1 4 2 0 .8-2 2.2-4 2.2S20 22.8 20 22c0-1 2-2 4-2Z"/></svg>
             <span>
               <span class="os">Linux</span>
@@ -860,7 +867,7 @@ document.documentElement.setAttribute('data-palette', ['green', 'mixed', 'purple
             </span>
           </a>
         </div>
-        <p class="verify">Verify your download: each release lists a checksum next to the file.</p>
+        <p class="verify" data-release>Release notes and the checksum are on the <a href="https://github.com/danielww94/counterlock-web/releases/latest" target="_blank" rel="noopener">release page</a>.</p>
         <h2 class="sec">Install on Linux</h2>
         <ol class="steps">
           <li>Click <b>Linux</b> above to download the <code>Counterlock</code> file.</li>
@@ -906,12 +913,7 @@ document.documentElement.setAttribute('data-palette', ['green', 'mixed', 'purple
       <h1 class="title" id="t-profiles">Counter Profiles</h1>
       <p class="lede">Profiles made by the community. Browse them, rate the ones that carried you, and share your own.</p>
 
-      <div class="soon" id="profilesSoon">
-        <div class="soon-label">Opening soon</div>
-        <p>The shared library isn't open yet. Until it is, Counterlock ships with a full profile covering every hero, and you can change anything in it with the editor. <a href="/" id="toEdit">See how editing works</a>.</p>
-      </div>
-
-      <div id="profilesBoard" hidden>
+      <div id="profilesBoard">
         <div class="acct-bar" id="acctBar"></div>
 
         <div class="board-top">
@@ -936,6 +938,7 @@ document.documentElement.setAttribute('data-palette', ['green', 'mixed', 'purple
         <div class="grid" id="grid"></div>
         <div class="more-wrap"><button class="btn" id="moreBtn" type="button" hidden>Show more</button></div>
         <p class="board-foot">Downloaded a profile? In Counterlock, open <b>Settings</b>, then <b>Load from file</b>. Made your own? Upload its <code>.xml</code> file here, and use <b>Update</b> on its card when you improve it. Uploads follow the <a class="inline-link" href="/privacy/">community rules</a>.</p>
+        <div class="ad-slot" data-ad="profiles" hidden><p class="ad-label">Advertisement</p></div>
       </div>
     </section>
 
@@ -1176,99 +1179,15 @@ document.documentElement.setAttribute('data-palette', ['green', 'mixed', 'purple
    Settings are at the very top of this file (RELEASE, SUPABASE, SITE).
 
    In order below:
+     Navigation        the sidebar pages, each page's content loaded when needed
      Release info      version, file sizes and download links from GitHub
-     Navigation        the sidebar pages
+     Ads               the ad positions (SITE.ads)
      Download page     Windows / Linux chooser
      Helpers, dialogs  shared bits used by the library
      Counter Profiles  the community library (Supabase). The real security
                        is in the database rules and the "api" function; this
                        code only displays things and asks for them.
    ========================================================================= */
-
-/* ---------------- Release info (the settings are at the top of this file) ---------------- */
-(function applyRelease(){
-  const R = (typeof RELEASE !== 'undefined' && RELEASE) || {};
-  const winFile = R.windowsFile || 'Counterlock.exe';
-  const linFile = R.linuxFile || 'Counterlock';
-  const repo = String(R.github || '').trim()
-    .replace(/^https?:\/\/(www\.)?github\.com\//i, '')
-    .replace(/\.git$/i, '').replace(/\/+$/, '');
-  const ready = /^[A-Za-z0-9-]+\/[A-Za-z0-9._-]+$/.test(repo) && !/YOUR-USERNAME/i.test(repo);
-
-  const verEl = document.getElementById('ver');
-  const tagOf = v => { v = String(v || '').trim(); return v ? (/^v/i.test(v) ? v : 'v' + v) : ''; };
-  const setVersion = v => { const t = tagOf(v); if (verEl && t) verEl.textContent = t; };
-  setVersion(R.version);
-
-  const winMeta = document.getElementById('dlWinMeta');
-  const linMeta = document.getElementById('dlLinMeta');
-  const setMeta = (el, parts) => { if (el) el.textContent = parts.filter(Boolean).join(' \u00b7 '); };
-  setMeta(winMeta, [winFile, '64-bit']);
-  setMeta(linMeta, ['single binary', 'x86_64']);
-
-  if (!ready) return;  // GitHub username not filled in yet: download buttons stay inactive
-
-  const base = 'https://github.com/' + repo + '/releases';
-  const wire = (id, file) => {
-    const a = document.getElementById(id);
-    if (!a) return;
-    a.href = base + '/latest/download/' + encodeURIComponent(file);
-    a.removeAttribute('onclick');
-    a.onclick = null;
-  };
-  wire('dlWin', winFile);
-  wire('dlLin', linFile);
-
-  const setVerify = v => document.querySelectorAll('.verify').forEach(p => {
-    const t = tagOf(v);
-    p.textContent = (t ? 'Version ' + t.replace(/^v/i, '') + '. ' : '') + 'Release notes and the checksum are on the ';
-    const a = document.createElement('a');
-    a.href = base + '/latest'; a.target = '_blank'; a.rel = 'noopener';
-    a.textContent = 'release page';
-    p.append(a, '.');
-  });
-  setVerify(R.version);
-
-  // Read version + file sizes from the latest GitHub Release (falls back quietly)
-  if (typeof fetch !== 'function') return;
-  const size = n => n >= 10485760 ? Math.round(n / 1048576) + ' MB' : (n / 1048576).toFixed(1) + ' MB';
-  fetch('https://api.github.com/repos/' + repo + '/releases/latest', { headers: { Accept: 'application/vnd.github+json' } })
-    .then(r => r.ok ? r.json() : null)
-    .then(rel => {
-      if (!rel) return;
-      if (rel.tag_name) { setVersion(rel.tag_name); setVerify(rel.tag_name); }
-      const find = name => (rel.assets || []).find(x => x && x.name === name);
-      const w = find(winFile), l = find(linFile);
-      if (w && w.size) setMeta(winMeta, [winFile, '64-bit', size(w.size)]);
-      if (l && l.size) setMeta(linMeta, ['single binary', 'x86_64', size(l.size)]);
-    })
-    .catch(() => {});
-})();
-
-/* ---------------- Ads (SITE.ads, SITE.adsPublisher, SITE.adSlots) ---------------- */
-// Positions: About (under the app screenshot) and Download (under the install
-// steps, once a system is picked). Nothing shows while SITE.ads is 'off', or
-// for a position without an ad unit ID. An ad is only asked for once its
-// page is on screen: Google can't size an ad on a hidden page.
-const adsAsked = new Set();
-function showAds(name) {
-  const cfg = (typeof SITE !== 'undefined' && SITE) || {};
-  const pub = String(cfg.adsPublisher || '').trim();
-  if (cfg.ads !== 'on' || !/^ca-pub-\d+$/.test(pub)) return;
-  const pos = name === 'download' && !document.querySelector('.os-tab[aria-pressed="true"]') ? '' : name;
-  const box = pos && document.querySelector(`.ad-slot[data-ad="${pos}"]`);
-  const slot = String((cfg.adSlots || {})[pos] || '').trim();
-  if (!box || !/^\d+$/.test(slot)) return;
-  box.hidden = false;
-  if (adsAsked.has(pos)) return;
-  adsAsked.add(pos);
-  const ins = document.createElement('ins');
-  ins.className = 'adsbygoogle';
-  ins.dataset.adClient = pub;
-  ins.dataset.adSlot = slot;
-  box.appendChild(ins);
-  try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch (e) { /* ad blocked: the box stays empty */ }
-}
 
 /* ---------------- Navigation ---------------- */
 // Every page has its own address, so Cloudflare Web Analytics (which ignores
@@ -1290,15 +1209,66 @@ function pageAt(){
   const path = location.pathname.replace(/index\.html$/,'').replace(/\/?$/,'/');
   return pages.find(p=>pagePath[p]===path) || 'about';
 }
-// fromNav: a sidebar button or a link was clicked. That switch gets its own
+
+// Each published copy holds only its own page's content, so every address
+// shows search engines just that page (.github/build-pages.py leaves the
+// other pages empty, marked data-later). The first switch to another page
+// fetches that page's own address once and takes its content from there.
+// index.html as it is in the repo has every page, so nothing is fetched.
+const pageSetups = {};   // page -> what wires up its content, run once it's there
+const pageFetches = {}, pageLoads = {};
+function pageSection(name){ return document.getElementById('page-'+name); }
+function pageLoaded(name){ const s = pageSection(name); return !!s && !s.hasAttribute('data-later'); }
+// Runs fn for a page's content: now if it's there, otherwise once it arrives.
+function onPage(name, fn){
+  (pageSetups[name] = pageSetups[name] || []).push(fn);
+  if (pageLoaded(name)) fn();
+}
+function fetchPage(name){
+  if (!pageFetches[name]) {
+    pageFetches[name] = fetch(pagePath[name], { credentials: 'same-origin' })
+      .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+      .then(text => {
+        const got = new DOMParser().parseFromString(text, 'text/html').getElementById('page-'+name);
+        if (!got || got.hasAttribute('data-later')) throw new Error('no content for ' + name);
+        return got;
+      })
+      .catch(e => { delete pageFetches[name]; throw e; });
+  }
+  return pageFetches[name];
+}
+function loadPage(name){
+  if (pageLoaded(name)) return Promise.resolve();
+  if (!pageLoads[name]) {
+    pageLoads[name] = fetchPage(name).then(got => {
+      const old = pageSection(name);
+      if (!old || !old.hasAttribute('data-later')) return;
+      const fresh = document.importNode(got, true);
+      fresh.classList.remove('active');
+      old.replaceWith(fresh);
+      (pageSetups[name] || []).forEach(fn => { try { fn(); } catch (e) { console.error(e); } });
+    }).catch(e => { delete pageLoads[name]; throw e; });
+  }
+  return pageLoads[name];
+}
+// Fetch a page as soon as the pointer or focus reaches a link to it, so the
+// switch is instant. (Only fetched, not added to the page, until it's opened.)
+['pointerover', 'focusin', 'touchstart'].forEach(type => document.addEventListener(type, e => {
+  const a = e.target && e.target.closest && e.target.closest('a[href]');
+  if (!a) return;
+  let to;
+  try { to = new URL(a.href, location.href); } catch (err) { return; }
+  const name = to.origin === location.origin && pages.find(p => pagePath[p] === to.pathname);
+  if (name && !pageLoaded(name)) fetchPage(name).catch(() => {});
+}, { passive: true }));
+
+// fromNav: a sidebar item or a link was clicked. That switch gets its own
 // history entry (pushState), so Back returns to the last page and Cloudflare
-// Web Analytics counts it as a page view.
+// Web Analytics counts it as a page view. The address and title change at
+// once; the content follows as soon as it's loaded.
 function show(name, fromNav){
   if(!pages.includes(name)) name='about';
   shown = name;
-  pages.forEach(p=>{
-    document.getElementById('page-'+p).classList.toggle('active', p===name);
-  });
   document.querySelectorAll('.navitem').forEach(b=>{
     const on = b.dataset.nav===name;
     if(on) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current');
@@ -1308,14 +1278,19 @@ function show(name, fromNav){
   if(location.pathname!==pagePath[name] || pages.includes(location.hash.slice(1))){
     try{ history[fromNav?'pushState':'replaceState'](null,'',pagePath[name]+(fromNav?'':location.search)); }catch(e){}
   }
+  if (pageLoaded(name)) { reveal(name); return; }
+  // Not loaded yet. If it can't be fetched (offline), open its address the normal way.
+  loadPage(name).then(() => { if (shown === name) reveal(name); },
+                      () => { if (shown === name) location.assign(pagePath[name]); });
+}
+function reveal(name){
+  pages.forEach(p=>{ const s = pageSection(p); if (s) s.classList.toggle('active', p===name); });
   document.querySelector('main').scrollTo?.(0,0);
   window.scrollTo(0,0);
   showAds(name);
 }
-document.querySelectorAll('.navitem[data-nav]').forEach(b=>{
-  b.addEventListener('click',()=>show(b.dataset.nav, true));
-});
-// Links to a page switch to it here, without loading the site again.
+// Links to a page (the sidebar menu too) switch to it here, without loading
+// the whole site again.
 document.addEventListener('click', e=>{
   const a = e.target.closest('a[href]');
   if(!a || e.defaultPrevented || a.getAttribute('href').startsWith('#') || a.hasAttribute('data-jump') || a.target || e.button || e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
@@ -1333,8 +1308,99 @@ function followAddress(){
 window.addEventListener('popstate', followAddress);
 window.addEventListener('hashchange', followAddress);
 
+/* ---------------- Release info (the settings are at the top of this file) ---------------- */
+// The published pages already have the latest version and real download
+// links in them (build-pages.py writes them at deploy time). This keeps them
+// right between deploys and adds the file sizes from GitHub.
+(function applyRelease(){
+  const R = (typeof RELEASE !== 'undefined' && RELEASE) || {};
+  const winFile = R.windowsFile || 'Counterlock.exe';
+  const linFile = R.linuxFile || 'Counterlock';
+  const repo = String(R.github || '').trim()
+    .replace(/^https?:\/\/(www\.)?github\.com\//i, '')
+    .replace(/\.git$/i, '').replace(/\/+$/, '');
+  const ready = /^[A-Za-z0-9-]+\/[A-Za-z0-9._-]+$/.test(repo) && !/YOUR-USERNAME/i.test(repo);
+
+  const verEl = document.getElementById('ver');
+  const tagOf = v => { v = String(v || '').trim(); return v ? (/^v/i.test(v) ? v : 'v' + v) : ''; };
+  const setVersion = v => { const t = tagOf(v); if (verEl && t) verEl.textContent = t; };
+  // The version written into the page at deploy time comes before the
+  // fallback in RELEASE (which is only for when neither is known).
+  const inPage = verEl ? verEl.textContent.trim() : '';
+  const latest = { tag: tagOf(/^v?\d+(\.\d+)+$/i.test(inPage) ? inPage : R.version), win: 0, lin: 0 };
+  setVersion(latest.tag);
+
+  const base = 'https://github.com/' + repo + '/releases';
+  const size = n => n >= 10485760 ? Math.round(n / 1048576) + ' MB' : (n / 1048576).toFixed(1) + ' MB';
+  const setMeta = (el, parts) => { if (el) el.textContent = parts.filter(Boolean).join(' · '); };
+  function fillDownload() {
+    setMeta(document.getElementById('dlWinMeta'), [winFile, '64-bit', latest.win && size(latest.win)]);
+    setMeta(document.getElementById('dlLinMeta'), ['single binary', 'x86_64', latest.lin && size(latest.lin)]);
+    if (!ready) return;  // GitHub repository not filled in: the links stay as they are in the page
+    const wire = (id, file) => { const a = document.getElementById(id); if (a) a.href = base + '/latest/download/' + encodeURIComponent(file); };
+    wire('dlWin', winFile);
+    wire('dlLin', linFile);
+    document.querySelectorAll('.verify[data-release]').forEach(p => {
+      p.textContent = (latest.tag ? 'Version ' + latest.tag.replace(/^v/i, '') + '. ' : '') + 'Release notes and the checksum are on the ';
+      const a = document.createElement('a');
+      a.href = base + '/latest'; a.target = '_blank'; a.rel = 'noopener';
+      a.textContent = 'release page';
+      p.append(a, '.');
+    });
+  }
+  onPage('download', fillDownload);
+
+  // Read version + file sizes from the latest GitHub Release (falls back quietly)
+  if (!ready || typeof fetch !== 'function') return;
+  fetch('https://api.github.com/repos/' + repo + '/releases/latest', { headers: { Accept: 'application/vnd.github+json' } })
+    .then(r => r.ok ? r.json() : null)
+    .then(rel => {
+      if (!rel) return;
+      if (rel.tag_name) { latest.tag = tagOf(rel.tag_name); setVersion(rel.tag_name); }
+      const find = name => (rel.assets || []).find(x => x && x.name === name);
+      const w = find(winFile), l = find(linFile);
+      latest.win = (w && w.size) || 0;
+      latest.lin = (l && l.size) || 0;
+      if (pageLoaded('download')) fillDownload();
+    })
+    .catch(() => {});
+})();
+
+/* ---------------- Ads (SITE.ads, SITE.profilesAds, SITE.adsPublisher, SITE.adSlots) ---------------- */
+// Positions: About (under the app screenshot), Download (under the install
+// steps, once a system is picked) and Counter Profiles (under the library,
+// only while SITE.profilesAds is 'on' too). Privacy & rules has none. Nothing
+// shows while SITE.ads is 'off', or for a position without an ad unit ID. An
+// ad is only asked for once its page is on screen: Google can't size an ad
+// on a hidden page.
+const adsAsked = new Set();
+function showAds(name) {
+  const cfg = (typeof SITE !== 'undefined' && SITE) || {};
+  const pub = String(cfg.adsPublisher || '').trim();
+  if (cfg.ads !== 'on' || !/^ca-pub-\d+$/.test(pub)) return;
+  let pos = name;
+  if (name === 'download' && !document.querySelector('.os-tab[aria-pressed="true"]')) pos = '';
+  if (name === 'profiles') {
+    const board = document.getElementById('profilesBoard');
+    if (cfg.profilesAds !== 'on' || !board || board.hidden) pos = '';
+  }
+  if (!['about', 'download', 'profiles'].includes(pos)) return;
+  const box = document.querySelector(`.ad-slot[data-ad="${pos}"]`);
+  const slot = String((cfg.adSlots || {})[pos] || '').trim();
+  if (!box || !/^\d+$/.test(slot)) return;
+  box.hidden = false;
+  if (adsAsked.has(pos)) return;
+  adsAsked.add(pos);
+  const ins = document.createElement('ins');
+  ins.className = 'adsbygoogle';
+  ins.dataset.adClient = pub;
+  ins.dataset.adSlot = slot;
+  box.appendChild(ins);
+  try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch (e) { /* ad blocked: the box stays empty */ }
+}
+
 /* ---------------- Download: platform chooser ---------------- */
-(function(){
+onPage('download', function(){
   const tabs = document.querySelectorAll('.os-tab');
   const hint = document.getElementById('osHint');
   const panels = { win: document.getElementById('osWin'), lin: document.getElementById('osLin'), web: document.getElementById('osWeb') };
@@ -1345,7 +1411,7 @@ window.addEventListener('hashchange', followAddress);
     if (hint) hint.hidden = true;
     showAds('download');
   }));
-})();
+});
 show(pageAt());
 // A link to a section of a page (/#help, from the counter pages' sidebar).
 { const h = location.hash.slice(1), t = h && !pages.includes(h) && document.getElementById(h); if (t) t.scrollIntoView(); }
@@ -1470,29 +1536,29 @@ const SUPPORT_EMAIL = String(((typeof SITE !== 'undefined' && SITE) || {}).suppo
 (function wireHelp() {
   const cfg = (typeof SITE !== 'undefined' && SITE) || {};
   document.querySelectorAll('.support-addr').forEach(el => { el.textContent = SUPPORT_EMAIL || 'us'; });
-  const mail = $('helpMail');
-  if (mail) {
-    if (SUPPORT_EMAIL) { mail.href = 'mailto:' + SUPPORT_EMAIL; mail.textContent = SUPPORT_EMAIL; }
-    else $('helpMailRow').hidden = true;
-  }
-  const copy = $('copyMail');
-  if (copy) copy.addEventListener('click', async () => {
-    try { await navigator.clipboard.writeText(SUPPORT_EMAIL); toast('Email address copied.', 2500); }
-    catch (e) { toast('Copy it from here: ' + SUPPORT_EMAIL, 6000); }
-  });
-  const repo = (typeof RELEASE !== 'undefined' && RELEASE && RELEASE.github) || '';
-  const repoLink = $('ghRepo');
-  if (repoLink) {
-    if (/^[A-Za-z0-9-]+\/[A-Za-z0-9._-]+$/.test(repo)) repoLink.href = 'https://github.com/' + repo;
-    else repoLink.hidden = true;
-  }
   const sponsor = String(cfg.githubSponsors || '').trim();
-  if (/^[A-Za-z0-9-]{1,39}$/.test(sponsor)) {
-    ['ghSponsorsSide', 'ghSponsorsRow'].forEach(id => {
-      const a = $(id);
-      if (a) { a.href = 'https://github.com/sponsors/' + sponsor; a.hidden = false; }
+  const sponsorOk = /^[A-Za-z0-9-]{1,39}$/.test(sponsor);
+  const showSponsor = id => { const a = $(id); if (a && sponsorOk) { a.href = 'https://github.com/sponsors/' + sponsor; a.hidden = false; } };
+  showSponsor('ghSponsorsSide');
+  onPage('about', () => {
+    showSponsor('ghSponsorsRow');
+    const mail = $('helpMail');
+    if (mail) {
+      if (SUPPORT_EMAIL) { mail.href = 'mailto:' + SUPPORT_EMAIL; mail.textContent = SUPPORT_EMAIL; }
+      else $('helpMailRow').hidden = true;
+    }
+    const copy = $('copyMail');
+    if (copy) copy.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(SUPPORT_EMAIL); toast('Email address copied.', 2500); }
+      catch (e) { toast('Copy it from here: ' + SUPPORT_EMAIL, 6000); }
     });
-  }
+    const repo = (typeof RELEASE !== 'undefined' && RELEASE && RELEASE.github) || '';
+    const repoLink = $('ghRepo');
+    if (repoLink) {
+      if (/^[A-Za-z0-9-]+\/[A-Za-z0-9._-]+$/.test(repo)) repoLink.href = 'https://github.com/' + repo;
+      else repoLink.hidden = true;
+    }
+  });
 })();
 
 // Links like "Help & feedback" in the sidebar: open a page, then scroll to a section.
@@ -1500,14 +1566,17 @@ document.addEventListener('click', e => {
   const j = e.target.closest('[data-jump]');
   if (!j) return;
   e.preventDefault();
-  show(j.dataset.page || 'about');
-  const target = $(j.dataset.jump);
-  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (target && target.scrollIntoView) target.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+  const page = j.dataset.page || 'about';
+  show(page);
+  loadPage(page).then(() => {
+    const target = $(j.dataset.jump);
+    const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (target && target.scrollIntoView) target.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+  }, () => {});
 });
 
 /* ---------------- Privacy page: contact details from SITE settings ---------------- */
-(function fillPrivacy() {
+onPage('privacy', function fillPrivacy() {
   const cfg = (typeof SITE !== 'undefined' && SITE) || {};
   const line = $('privContact');
   if (line) {
@@ -1521,12 +1590,12 @@ document.addEventListener('click', e => {
       line.textContent = 'send a message through the Support the developer page';
     }
   }
-})();
+});
 
 /* ---------------- Privacy page: change the ad consent choice ---------------- */
 // Opens Google's consent box again. Google only loads it for visitors in the
 // EU, EEA, UK and Switzerland (set up in AdSense, Privacy & messaging).
-(function wireAdConsent() {
+onPage('privacy', function wireAdConsent() {
   const link = $('adConsent');
   if (!link) return;
   link.addEventListener('click', e => {
@@ -1539,7 +1608,7 @@ document.addEventListener('click', e => {
       infoBox('Privacy and cookie settings', "Google's consent box isn't loaded here. Google only asks visitors in the EU, the EEA, the UK and Switzerland, and an ad blocker can stop it. You can still turn off personalised ads in Google's My Ad Center.");
     }
   });
-})();
+});
 
 /* =========================================================================
    Counter Profiles: the live community library
@@ -1567,7 +1636,6 @@ function keyProblem(k) {
 
 let sb = null;
 (function startLibrary() {
-  const board = $('profilesBoard'), soon = $('profilesSoon');
   const wantLive = BOARD_MODE === 'live';
   const configured = !!(LIB.url && LIB.publishableKey);
   const problem = keyProblem(LIB.publishableKey);
@@ -1588,30 +1656,41 @@ let sb = null;
       live = false;
     }
   }
-  if (board) board.hidden = !live;
-  if (soon) soon.hidden = live;
+  // The library shows from the start. If it can't run, it's swapped for an
+  // "opening soon" note, which is never in the page itself (search engines
+  // would take it for an unfinished page).
+  onPage('profiles', () => {
+    const board = $('profilesBoard');
+    if (!board || live) return;
+    board.hidden = true;
+    if ($('profilesSoon')) return;
+    const soon = document.createElement('div');
+    soon.className = 'soon';
+    soon.id = 'profilesSoon';
+    soon.innerHTML = '<div class="soon-label">Opening soon</div><p>The shared library isn\'t open yet. Until it is, ' +
+      'Counterlock ships with a full profile covering every hero, and you can change anything in it with the editor. ' +
+      '<a href="/#edit" data-jump="edit">See how editing works</a>.</p>';
+    board.before(soon);
+  });
 })();
-
-const toEdit = $('toEdit');
-if (toEdit) toEdit.addEventListener('click', e => {
-  e.preventDefault();
-  show('about');
-  const target = $('edit');
-  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (target && target.scrollIntoView) target.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
-});
 
 if (sb) initLibrary();
 
 function initLibrary() {
-  const grid = $('grid'), moreBtn = $('moreBtn'), boardMsg = $('boardMsg'), searchBox = $('searchBox');
+  // The board's parts, once the Counter Profiles page is there (see onPage).
+  // Signing in, the dialogs and the contact form work on every page.
+  let grid = null, moreBtn = null, boardMsg = null, searchBox = null;
+  onPage('profiles', () => { grid = $('grid'); moreBtn = $('moreBtn'); boardMsg = $('boardMsg'); searchBox = $('searchBox'); });
   const BASE = String(LIB.url).replace(/\/+$/, '');
   const PAGE = 24;
   const COLS = 'id,name,description,patch,author_name,owner_id,hero_count,matchup_count,tips_heroes,downloads,rating_avg,rating_count,created_at,updated_at,version,file_path';
-  const S = { sort: 'popular', q: '', page: 0, rows: [], done: false, req: 0,
+  // hidden_at: set when a profile is hidden after reports (only its author and
+  // the admin get it). A database from before that column: plain COLS.
+  const S = { cols: COLS + ',hidden_at', sort: 'popular', q: '', page: 0, rows: [], done: false, req: 0,
               user: null, account: null, mine: new Map(), counted: new Set() };
 
   function setBoardMsg(text, kind) {
+    if (!boardMsg) return;
     boardMsg.textContent = text || '';
     boardMsg.className = 'board-msg' + (kind ? ' ' + kind : '');
   }
@@ -1637,6 +1716,7 @@ function initLibrary() {
 
   // ---------- Loading the list ----------
   async function load(reset) {
+    if (!grid) return;
     const req = ++S.req;
     if (reset) {
       S.page = 0; S.rows = []; S.done = false;
@@ -1644,7 +1724,7 @@ function initLibrary() {
       setBoardMsg('Loading profiles\u2026');
     }
     const term = S.q.toLowerCase().replace(/[%_,()*\\"']/g, ' ').replace(/\s+/g, ' ').trim();
-    let q = sb.from('profiles').select(COLS);
+    let q = sb.from('profiles').select(S.cols);
     if (term) q = q.ilike('search', '%' + term + '%');
     if (S.sort === 'rated') q = q.order('rating_score', { ascending: false }).order('rating_count', { ascending: false }).order('created_at', { ascending: false });
     else if (S.sort === 'new') q = q.order('created_at', { ascending: false });
@@ -1653,6 +1733,10 @@ function initLibrary() {
     let res;
     try { res = await q.range(from, from + PAGE - 1); } catch (e) { res = { error: e }; }
     if (req !== S.req) return;                      // a newer search or sort took over
+    if (res.error && S.cols !== COLS && /hidden_at/.test(String(res.error.message || ''))) {
+      S.cols = COLS;                                // the database isn't updated yet
+      return load(reset);
+    }
     if (res.error) {
       setBoardMsg("The profile library can't be reached right now. Try again in a little while.", 'err');
       return;
@@ -1691,6 +1775,9 @@ function initLibrary() {
     const tips = Array.isArray(r.tips_heroes) ? r.tips_heroes : [];
     const tipsTag = !tips.length ? '' : tips.length <= 2 ? 'Tips: ' + tips.join(', ') : `Tips for ${tips.length} heroes`;
     const n = Number(r.matchup_count) || 0;
+    const admin = !!(S.account && S.account.is_admin);
+    const hiddenTag = !r.hidden_at ? '' :
+      `<span class="tag flag" title="Hidden from the library after reports, until the admin has checked it">${admin ? 'Hidden after reports' : 'Hidden while it is checked'}</span>`;
     const el = document.createElement('article');
     el.className = 'card';
     el.dataset.card = r.id;
@@ -1701,6 +1788,7 @@ function initLibrary() {
         <p class="by">by <b>${esc(r.author_name)}</b>${own ? ' <span class="you">you</span>' : ''} \u00b7 ${esc(day(r.created_at))}${r.updated_at ? ' \u00b7 updated ' + esc(day(r.updated_at)) : ''}</p>
         ${r.description ? `<p class="desc">${esc(r.description)}</p>` : '<p class="desc"></p>'}
         <div class="tags">
+          ${hiddenTag}
           ${r.patch ? `<span class="tag patch">Patch ${esc(r.patch)}</span>` : ''}
           <span class="tag">${n} matchup${n === 1 ? '' : 's'}</span>
           ${r.hero_count ? `<span class="tag">${Number(r.hero_count)} heroes</span>` : ''}
@@ -1712,6 +1800,7 @@ function initLibrary() {
         <span class="dls">${fmt(Number(r.downloads) || 0)} download${Number(r.downloads) === 1 ? '' : 's'}</span>
         <span class="acts">
           ${!own && !(S.account && S.account.is_admin) ? `<button class="getbtn quiet" data-rep="${esc(r.id)}" type="button" title="Report this profile to the admin">Report</button>` : ''}
+          ${r.hidden_at && admin ? `<button class="getbtn" data-restore="${esc(r.id)}" type="button" title="Show it in the library again">Restore</button>` : ''}
           ${own ? `<button class="getbtn" data-upd="${esc(r.id)}" type="button" title="Replace with a new version of the file">Update</button>` : ''}
           ${canDelete ? `<button class="getbtn del" data-del="${esc(r.id)}" type="button">Delete</button>` : ''}
           <button class="getbtn" data-get="${esc(r.id)}" type="button">Download</button>
@@ -1722,7 +1811,7 @@ function initLibrary() {
 
   function refreshCard(id) {
     const r = S.rows.find(x => x.id === id);
-    const old = UUID_RE.test(id) ? grid.querySelector(`[data-card="${id}"]`) : null;
+    const old = grid && UUID_RE.test(id) ? grid.querySelector(`[data-card="${id}"]`) : null;
     if (r && old) old.replaceWith(card(r));
   }
   function replaceRow(row) {
@@ -1730,6 +1819,7 @@ function initLibrary() {
     if (i >= 0) { S.rows[i] = row; refreshCard(row.id); }
   }
   function rerender() {
+    if (!grid) return;
     grid.innerHTML = '';
     S.rows.forEach(r => grid.appendChild(card(r)));
   }
@@ -1746,7 +1836,7 @@ function initLibrary() {
       : await sb.from('ratings').upsert({ profile_id: id, user_id: S.user.id, stars }, { onConflict: 'profile_id,user_id' });
     if (res.error) { toast("Couldn't save your rating. Please try again."); return; }
     if (had === stars) S.mine.delete(id); else S.mine.set(id, stars);
-    const fresh = await sb.from('profiles').select(COLS).eq('id', id).maybeSingle();
+    const fresh = await sb.from('profiles').select(S.cols).eq('id', id).maybeSingle();
     if (fresh.data) replaceRow(fresh.data); else refreshCard(id);
     toast(had === stars ? 'Rating removed.' : `You rated it ${stars} star${stars > 1 ? 's' : ''}.`, 2500);
   }
@@ -1788,13 +1878,29 @@ function initLibrary() {
     const res = await callApi({ action: 'delete-profile', id });
     if (res.error) { toast(res.error, 6000); return; }
     S.rows = S.rows.filter(x => x.id !== id);
-    const el = grid.querySelector(`[data-card="${id}"]`);
+    const el = grid && grid.querySelector(`[data-card="${id}"]`);
     if (el) el.remove();
     if (!S.rows.length) setBoardMsg('No profiles yet. Be the first to share one.');
     toast('Profile deleted.');
   }
 
-  grid.addEventListener('click', e => {
+  // Hidden after reports: the admin puts it back (or deletes it).
+  async function restoreProfile(id) {
+    const r = S.rows.find(x => x.id === id);
+    if (!r) return;
+    const ok = await confirmBox({
+      title: 'Show this profile again?',
+      text: `"${r.name}" by ${r.author_name} goes back into the library for everyone. The reports so far no longer count toward hiding it.`,
+      confirm: 'Restore',
+    });
+    if (!ok) return;
+    const res = await callApi({ action: 'restore-profile', id });
+    if (res.error) { toast(res.error, 6000); return; }
+    if (res.data && res.data.profile) replaceRow(res.data.profile);
+    toast('Profile restored.');
+  }
+
+  onPage('profiles', () => grid.addEventListener('click', e => {
     const st = e.target.closest('[data-star]');
     if (st) { if (!st.disabled) rate(st.dataset.id, Number(st.dataset.star)); return; }
     const g = e.target.closest('[data-get]');
@@ -1803,9 +1909,11 @@ function initLibrary() {
     if (u) { startUpdate(u.dataset.upd); return; }
     const rp = e.target.closest('[data-rep]');
     if (rp) { startReport(rp.dataset.rep); return; }
+    const rs = e.target.closest('[data-restore]');
+    if (rs) { restoreProfile(rs.dataset.restore); return; }
     const d = e.target.closest('[data-del]');
     if (d) removeProfile(d.dataset.del);
-  });
+  }));
 
   // ---------- Sort, search, more ----------
   function setSort(key) {
@@ -1814,13 +1922,15 @@ function initLibrary() {
       b.setAttribute('aria-pressed', b.dataset.sort === key ? 'true' : 'false'));
     load(true);
   }
-  document.querySelectorAll('.sortgroup button').forEach(b => b.addEventListener('click', () => setSort(b.dataset.sort)));
   let searchTimer = 0;
-  searchBox.addEventListener('input', () => {
-    clearTimeout(searchTimer);
-    searchTimer = setTimeout(() => { S.q = searchBox.value; load(true); }, 300);
+  onPage('profiles', () => {
+    document.querySelectorAll('.sortgroup button').forEach(b => b.addEventListener('click', () => setSort(b.dataset.sort)));
+    searchBox.addEventListener('input', () => {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(() => { S.q = searchBox.value; load(true); }, 300);
+    });
+    moreBtn.addEventListener('click', () => load(false));
   });
-  moreBtn.addEventListener('click', () => load(false));
 
   // ---------- Upload ----------
   function precheck(text) {
@@ -1855,17 +1965,17 @@ function initLibrary() {
   }
 
   let updatingId = null;       // set while picking a file for Update
-  $('uploadBtn').addEventListener('click', () => {
+  onPage('profiles', () => $('uploadBtn').addEventListener('click', () => {
     if (!S.user) { openDialog('dlgSignIn', 'Sign in to share a profile.'); return; }
     updatingId = null;
     $('fileInput').click();
-  });
+  }));
   function startUpdate(id) {
     if (!S.user) { openDialog('dlgSignIn', 'Sign in to update your profiles.'); return; }
     updatingId = id;
     $('fileInput').click();
   }
-  $('fileInput').addEventListener('change', async () => {
+  onPage('profiles', () => $('fileInput').addEventListener('change', async () => {
     const input = $('fileInput');
     const file = input.files && input.files[0];
     input.value = '';
@@ -1891,13 +2001,15 @@ function initLibrary() {
     if (res.error) { infoBox(failTitle, res.error); return; }
     toast(`"${check.name}" is live.` + (res.data && res.data.emailed ? ' A confirmation email is on its way.' : ''), 6000);
     setSort('new');
-  });
+  }));
 
   // ---------- Contact form (About page) ----------
-  $('openContact').hidden = false;
-  $('openContact').addEventListener('click', () => {
-    openDialog('dlgContact');
-    if (S.user && S.user.email) $('formContact').elements.email.value = S.user.email;
+  onPage('about', () => {
+    $('openContact').hidden = false;
+    $('openContact').addEventListener('click', () => {
+      openDialog('dlgContact');
+      if (S.user && S.user.email) $('formContact').elements.email.value = S.user.email;
+    });
   });
   $('formContact').addEventListener('submit', async e => {
     e.preventDefault();
@@ -1958,6 +2070,7 @@ function initLibrary() {
   // ---------- Account bar ----------
   function renderAcct() {
     const bar = $('acctBar');
+    if (!bar) return;
     if (!S.user) {
       bar.innerHTML = '<span>Browse and download freely. Sign in to upload and rate.</span>' +
         '<span class="acct-btns"><button class="btn" type="button" data-open="dlgSignIn">Sign in</button>' +
@@ -2189,13 +2302,12 @@ function initLibrary() {
   });
 
   // ---------- Start ----------
-  renderAcct();
   sb.auth.onAuthStateChange((_event, session) => {
     // Supabase advises against awaiting other calls inside this callback.
     setTimeout(() => { onSession(session); }, 0);
   });
   handleEmailLink();
-  load(true);
+  onPage('profiles', () => { renderAcct(); load(true); });
 }
 </script>
 </body>

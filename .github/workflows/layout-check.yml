@@ -11,10 +11,20 @@
 #   - Ads off (all the checks above run like this): no page shows an ad, and
 #     the only ad file the page asks for is Google's AdSense script (Google
 #     checks the site with it).
-#   - Ads on, with made-up ad unit IDs: the About and Download ad boxes keep
-#     250 px for the ad (the page doesn't jump when it loads), sit outside
-#     forms, and are at least 150 px from any button or download link. The
-#     Download one only shows once a system is picked.
+#   - Ads on, with made-up ad unit IDs: the About, Download, /counter/ and
+#     hero page ad boxes keep 250 px for the ad (the page doesn't jump when
+#     it loads), sit outside forms, and are at least 150 px from any button
+#     or download link. The Download one only shows once a system is picked.
+#     Counter Profiles (with fake library cards) shows none until
+#     SITE.profilesAds is 'on' too, then its box follows the same rules, at
+#     least 150 px from any button or link. Privacy never shows one.
+#   - What search engines get (JavaScript off): each main address has only
+#     its own page's content in the HTML, the latest version in the sidebar,
+#     real links (menu, downloads, release page, GitHub, Help & feedback,
+#     the feedback email written with HTML character codes), no "#" links
+#     outside the sign-in dialogs, and no "opening soon" note.
+#   - Switching pages loads each page's content only when it's opened, and
+#     then it works (downloads, library, Help & feedback).
 #   - Every page has its own address (/, /download/, /profiles/, /privacy/)
 #     and title. Opening or reloading one shows that page, and old links
 #     (/#download and so on) land on the new address.
@@ -28,7 +38,8 @@
 #     like deploy-site.yml does: /counter/abrams/ at phone and PC size (same
 #     layout, its own title, description, canonical address and one H1,
 #     breadcrumbs, the web app button and Download link at the top, no
-#     quick answer box, the ad rules, analytics), /counter/, 404.html,
+#     quick answer box, no "Gun hero." or the like, the ad rules,
+#     analytics), /counter/ (with its ad position), 404.html,
 #     sitemap.xml and robots.txt, and that /app/?enemy=abrams opens the web
 #     version with Abrams picked.
 #   - The sidebar's "Hero Counters" is drawn like "Counter Profiles" on every
