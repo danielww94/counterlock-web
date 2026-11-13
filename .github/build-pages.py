@@ -9,6 +9,15 @@ version in app/. This script adds:
   - Search details for each copy of index.html: its own title, description,
     canonical address and share preview (Open Graph, X), and the
     SoftwareApplication details only on / and /download/.
+  - Each copy of index.html keeps only its own page's content (the other
+    pages are left empty, and the page script fetches them when someone
+    switches to them), its sidebar item marked as the open page, the latest
+    version in the sidebar, and real links where the page script used to
+    fill them in: the Windows and Linux downloads, the release page, GitHub
+    and the feedback email (written with HTML character codes, so simple
+    spam bots don't see an address). Only for an index.html that supports
+    it (<main data-lazy-pages>), so the layout check can still build the
+    base branch's site to compare with.
   - The counter pages: /counter/ (every hero, A to Z) and one page per enemy
     hero at /counter/<hero>/, made from the counter profile inside app/, the
     same profile the web version starts with. They read it with the app's own
@@ -25,8 +34,9 @@ version in app/. This script adds:
 
 The counter pages and 404.html take their look from index.html, so nothing is
 copied by hand: the styles (written once to /counter/site.css), the sidebar,
-the settings block at the top (SITE.palette, SITE.ads, SITE.adSlots.counter),
-the AdSense script and the Cloudflare Web Analytics snippet.
+the settings block at the top (SITE.palette, SITE.ads, SITE.adSlots.counter,
+shared by /counter/ and the hero pages), the AdSense script and the
+Cloudflare Web Analytics snippet.
 """
 
 from __future__ import annotations
@@ -37,6 +47,7 @@ import json
 import re
 import subprocess
 import sys
+import urllib.parse
 import zipfile
 from pathlib import Path
 
@@ -88,6 +99,10 @@ class Site:
         titles = take(r"const pageTitle = \{.*?\};", index, "pageTitle")
         self.titles = dict(re.findall(r"(\w+):\s*'([^']*)'", titles))
         self.titles["about"] = html.unescape(take(r"<title>.*?</title>", index, "the title")[7:-8])
+        # The settings the published HTML needs (RELEASE and SITE blocks).
+        self.release = setting_block(self.settings, "RELEASE")
+        self.site_cfg = setting_block(self.settings, "SITE")
+        self.lazy_pages = "<main data-lazy-pages>" in index
 
     def sidebar(self, current: str, version: str) -> str:
         """The sidebar with links instead of the page buttons (these pages
@@ -95,11 +110,72 @@ class Site:
         aside = re.sub(
             r'<button class="navitem" data-nav="(\w+)"[^>]*>(.*?)</button>',
             lambda m: f'<a class="navitem" href="{PAGE_PATHS[m.group(1)]}">{m.group(2)}</a>', self.aside)
+        # The main pages' menu items are links already; drop what only their script uses.
+        aside = re.sub(r'(<a class="navitem" href="[^"]*") data-nav="\w+"(?: aria-current="page")?', r"\1", aside)
         aside = aside.replace(f'<a class="navitem" href="{current}">', f'<a class="navitem" href="{current}" aria-current="page">')
-        aside = aside.replace('<a href="/" data-jump="help">', '<a href="/#help">')
+        aside = re.sub(r'<a href="/(?:#help)?" data-jump="help">', '<a href="/#help">', aside)
         if version:
             aside = re.sub(r'(<span class="v" id="ver">)[^<]*', rf"\g<1>v{version}", aside)
         return aside
+
+
+def setting_block(settings: str, name: str) -> dict:
+    """The plain 'text' values of one settings object (RELEASE, SITE)."""
+    found = re.search(rf"const {name} = \{{(.*?)\n\}};", settings, re.S)
+    return dict(re.findall(r"^\s*(\w+):\s*'([^']*)'", found.group(1), re.M)) if found else {}
+
+
+def char_codes(text: str) -> str:
+    """Text as HTML character codes (&#102;...): browsers show it as usual."""
+    return "".join(f"&#{ord(c)};" for c in text)
+
+
+# --- the copies of index.html (/, /download/, /profiles/, /privacy/) ----------
+
+SECTION = re.compile(r'(<section class="page(?: active)?" id="page-(\w+)"[^>]*>)(.*?)(</section>)', re.S)
+
+
+def own_page_only(text: str, name: str) -> str:
+    """Keeps only page `name`'s content, shown without JavaScript, and empties
+    the others (data-later: the page script fetches them when needed)."""
+    def one(m: re.Match) -> str:
+        if m.group(2) != name:
+            return f'<section class="page" id="page-{m.group(2)}" data-later></section>'
+        opening = re.sub(r'class="page(?: active)?"', 'class="page active"', m.group(1), count=1)
+        return opening + m.group(3) + m.group(4)
+    text, count = SECTION.subn(one, text)
+    if count != len(PAGE_PATHS):
+        fail(f"found {count} pages in index.html instead of {len(PAGE_PATHS)}")
+    return re.sub(r'(<a class="navitem" href="[^"]*" data-nav="(\w+)")(?: aria-current="page")?',
+                  lambda m: m.group(1) + (' aria-current="page"' if m.group(2) == name else ""), text)
+
+
+def fill_links(text: str, site: Site, version: str) -> str:
+    """The version and the links the page script would otherwise fill in."""
+    if version:
+        text = re.sub(r'(<span class="v" id="ver">)[^<]*', rf"\g<1>v{version}", text)
+    repo = re.sub(r"^https?://(www\.)?github\.com/|\.git$|/+$", "", site.release.get("github", "").strip())
+    if re.fullmatch(r"[A-Za-z0-9-]+/[A-Za-z0-9._-]+", repo):
+        releases = f"https://github.com/{repo}/releases"
+        for link_id, key, default in (("dlWin", "windowsFile", "Counterlock.exe"), ("dlLin", "linuxFile", "Counterlock")):
+            file = urllib.parse.quote(site.release.get(key) or default)
+            text = re.sub(rf'(<a class="dl" id="{link_id}" href=")[^"]*(")', rf"\g<1>{releases}/latest/download/{file}\g<2>", text)
+        note = (f"Version {esc(version)}. " if version else "") + \
+            f'Release notes and the checksum are on the <a href="{releases}/latest" target="_blank" rel="noopener">release page</a>.'
+        text = re.sub(r'(<p class="verify" data-release>).*?(</p>)', lambda m: m.group(1) + note + m.group(2), text, flags=re.S)
+        text = re.sub(r'(<a class="link-row" id="ghRepo" href=")[^"]*(")', rf"\g<1>https://github.com/{repo}\g<2>", text)
+    mail = site.site_cfg.get("supportEmail", "").strip()
+    if re.fullmatch(r"[^\s@<>\"']+@[^\s@<>\"']+\.[^\s@<>\"']+", mail):
+        text = re.sub(r'<a class="help-address" id="helpMail" href="[^"]*">[^<]*</a>',
+                      lambda m: f'<a class="help-address" id="helpMail" href="{char_codes("mailto:" + mail)}">{char_codes(mail)}</a>',
+                      text)
+    return text
+
+
+def main_page(text: str, name: str, site: Site, version: str) -> str:
+    if not site.lazy_pages:
+        return text
+    return fill_links(own_page_only(text, name), site, version)
 
 
 # --- search details for the copies of index.html -------------------------------
@@ -133,14 +209,14 @@ def tag_pages(site_dir: Path, site: Site, version: str) -> None:
     home = site_dir / "index.html"
     found = re.search(r'<meta name="description" content="([^"]*)"', site.index)
     description = html.unescape(found.group(1)) if found else ""
-    home.write_text(page_head(home.read_text(encoding="utf-8"), "/", site.titles["about"], description, True, version),
-                    encoding="utf-8")
+    home.write_text(main_page(page_head(home.read_text(encoding="utf-8"), "/", site.titles["about"], description, True,
+                                        version), "about", site, version), encoding="utf-8")
     for name, description in PAGE_DESCRIPTIONS.items():
         page = site_dir / name / "index.html"
         if page.is_file():
             title = site.titles.get(name, "Counterlock")
-            page.write_text(page_head(page.read_text(encoding="utf-8"), PAGE_PATHS[name], title, description,
-                                      name == "download", version), encoding="utf-8")
+            page.write_text(main_page(page_head(page.read_text(encoding="utf-8"), PAGE_PATHS[name], title, description,
+                                                name == "download", version), name, site, version), encoding="utf-8")
 
 
 # --- the counter profile, read with the app's own code -------------------------
@@ -319,13 +395,15 @@ COUNTER_CSS = """
 .type-note{flex-basis:100%;margin:0;font-size:14px;color:var(--bone-dim)}
 .lost-links{display:flex;flex-wrap:wrap;gap:12px;margin:22px 0 0}
 .lost-links .btn{display:inline-block;text-decoration:none;font-size:14px;padding:11px 18px}
+.ad-slot.ad-end{margin-top:160px}
 @media (max-width:820px){
   .tips-list ul,.tips-list .vs{padding-left:30px}
 }
 """
 
-# Shows the counter page's ad position, like showAds() in index.html: only
-# while SITE.ads is 'on' and SITE.adSlots.counter holds an ad unit ID.
+# Shows the ad position of /counter/ or a hero page, like showAds() in
+# index.html: only while SITE.ads is 'on' and SITE.adSlots.counter holds an
+# ad unit ID.
 PAGE_SCRIPT = """<script>
 (function(){
   const cfg = (typeof SITE !== 'undefined' && SITE) || {};
@@ -399,10 +477,12 @@ def type_builds(enemy) -> dict:
 
 def type_box(hero, builds: dict) -> list[str]:
     """The "Type (optional)" box, hidden until the page's script runs. It
-    starts at the hero's own type, like the app's enemy type box."""
+    starts at "Any type": the page never names the hero's own type (it
+    depends on the build). data-own only keeps the app's rule of no note for
+    the hero's own type."""
     own = hero.hero_type if hero.hero_type in HERO_TYPES else ""
     options = [("", "Any type")] + [(t, t.capitalize()) for t in HERO_TYPES]
-    opts = "".join(f'<option value="{t}"{" selected" if t == own else ""}>{label}</option>' for t, label in options)
+    opts = "".join(f'<option value="{t}">{label}</option>' for t, label in options)
     return [f'        <div class="type-pick" data-builds="{esc(" ".join(builds))}" data-own="{esc(own)}" '
             f'data-name="{esc(hero.name)}" hidden>',
             '          <label for="type-box">Type <span>(optional)</span></label>',
@@ -426,8 +506,9 @@ def counter_page(site: Site, profile, phases, hero, version: str) -> str:
     out.append('    <section class="page active" aria-labelledby="t-hero">')
     out.append("      " + crumbs)
     out.append(f'      <h1 class="title" id="t-hero">{esc(title)}</h1>')
-    kind = f"{hero.type_label} hero. " if hero.type_label else ""
-    out.append(f'      <p class="lede">{esc(kind)}Counter items for lane, mid and late game, and tips for the hero you play.</p>')
+    # No "Gun hero." or the like: a hero's type depends on the build.
+    out.append(f'      <p class="lede">Counter items against {esc(name)} for lane, mid and late game, '
+               'and tips for the hero you play.</p>')
     out.append("      " + updated_line(profile))
 
     # The web app button and the Download link, with the type box under them.
@@ -518,7 +599,7 @@ def counter_index(site: Site, profile, version: str) -> str:
                        "How to counter every hero in Deadlock: counter items for lane, mid and late game, "
                        "key principles and tips for your hero.", 158)
     crumbs, crumb_data = breadcrumbs([("Home", "/"), ("Counters", path)])
-    out = [head(site, title=f"{title} · Counterlock", description=description, path=path, json_ld=crumb_data)]
+    out = [head(site, title=f"{title} · Counterlock", description=description, path=path, json_ld=crumb_data, ads=True)]
     out.append(site.sidebar(path, version))
     out.append("  <main>")
     out.append('    <section class="page active" aria-labelledby="t-counters">')
@@ -537,6 +618,9 @@ def counter_index(site: Site, profile, version: str) -> str:
     out.append('      <div class="callout">The same counters are in the Counterlock app, on your PC or in your '
                'browser, where you can also pick your own hero and edit the profile. '
                '<a class="inline-link" href="/download/">Get Counterlock</a></div>')
+    # The ad position (SITE.adSlots.counter, like the hero pages): at the end,
+    # well clear of the hero links and the link above.
+    out.append('      <div class="ad-slot ad-end" data-ad="counter" hidden><p class="ad-label">Advertisement</p></div>')
     out.append("    </section>")
     out.append(PAGE_SCRIPT)
     out.append(foot())

@@ -32,6 +32,18 @@
 // the old #links (/#download and so on), and reloads a page, and notes where
 // each lands and with which title.
 //
+// What search engines get: each main address opened with JavaScript off,
+// noting which pages' content is in its HTML, which shows, the sidebar
+// version, the download, GitHub, help and feedback email links, any "#"
+// links left, the ad positions and any "opening soon" note. With JavaScript
+// on: switching pages from the sidebar loads each page's content when it's
+// needed (and only then), and that content works (the Windows download, the
+// library, Help & feedback scrolling to its section).
+//
+// The Counter Profiles ad position is tried with fake library cards (the
+// real library can't be reached), with SITE.profilesAds off (no ad) and on
+// (?ads=all).
+//
 // The counter pages (.github/build-pages.py): /counter/abrams/ and /counter/
 // get the same layout, ads and analytics checks, plus their search details
 // (title, one H1, description, canonical address, breadcrumbs) and their hero
@@ -62,11 +74,36 @@ const TYPES = { ".html": "text/html", ".js": "text/javascript", ".mjs": "text/ja
 const COUNTER = "counter/abrams/"; // the counter page the checks open
 
 // index.html with SITE.ads switched on or off, and on with made-up ad unit
-// IDs ('1234567890'), when the address ends in ?ads=on or ?ads=off.
+// IDs ('1234567890'), when the address ends in ?ads=on or ?ads=off. ?ads=all
+// also switches on SITE.profilesAds (the Counter Profiles position).
 function withAds(html, mode) {
-  html = html.replace(/(\n\s*ads:\s*)'[a-z-]*'/, `$1'${mode}'`);
-  if (mode === "on") html = html.replace(/(adSlots:\s*\{)([^}]*)\}/, (m, a, b) => a + b.replace(/''/g, "'1234567890'") + "}");
+  html = html.replace(/(\n\s*ads:\s*)'[a-z-]*'/, `$1'${mode === "off" ? "off" : "on"}'`);
+  if (mode !== "off") html = html.replace(/(adSlots:\s*\{)([^}]*)\}/, (m, a, b) => a + b.replace(/''/g, "'1234567890'") + "}");
+  if (mode === "all") html = html.replace(/(\n\s*profilesAds:\s*)'[a-z-]*'/, "$1'on'");
   return html;
+}
+
+// The settings in the repo's index.html (RELEASE and SITE), for the link checks.
+function settingsOf(html) {
+  const block = (name) => {
+    const m = html.match(new RegExp(`const ${name} = \\{([\\s\\S]*?)\\n\\};`));
+    return m ? Object.fromEntries([...m[1].matchAll(/^\s*(\w+):\s*'([^']*)'/gm)].map((x) => [x[1], x[2]])) : {};
+  };
+  return { release: block("RELEASE"), site: block("SITE") };
+}
+
+// Made-up cards for the Counter Profiles library (Supabase can't be reached
+// in the test), so the ad's distance to the cards' buttons can be measured.
+const FAKE_PROFILES = [1, 2, 3, 4].map((n) => ({
+  id: `00000000-0000-4000-8000-00000000000${n}`, name: `Test profile ${n}`, description: "Made-up profile for the layout check.",
+  patch: "10-05-2026", author_name: `tester${n}`, owner_id: `10000000-0000-4000-8000-00000000000${n}`, hero_count: 38,
+  matchup_count: 20 + n, tips_heroes: ["Abrams"], downloads: 10 * n, rating_avg: 4.5, rating_count: n,
+  created_at: "2026-11-01T12:00:00Z", updated_at: null, version: 1, file_path: `x/${n}.xml`, hidden_at: null,
+}));
+async function fakeLibrary(context) {
+  await context.route(/^https:\/\/[a-z0-9]+\.supabase\.co\/rest\/v1\/profiles/, (route) =>
+    route.fulfill({ contentType: "application/json", headers: { "content-range": `0-${FAKE_PROFILES.length - 1}/*` },
+      body: JSON.stringify(FAKE_PROFILES) }));
 }
 
 // Stands in for Cloudflare's beacon.min.js. Like the real one, it counts a
@@ -85,7 +122,7 @@ async function fakeBeacon(context) {
 }
 
 const server = http.createServer((req, res) => {
-  const ads = (req.url.match(/[?&]ads=(on|off)/) || [])[1];
+  const ads = (req.url.match(/[?&]ads=(on|off|all)/) || [])[1];
   let file = decodeURIComponent(req.url.split("?")[0]);
   if (file.endsWith("/")) file += "index.html";
   file = path.join(root, file);
@@ -129,7 +166,7 @@ function measureAd(name) {
   // link and fold-out counts too.
   const controls = [...document.querySelectorAll(
     "main a.dl, main button, main .btn, main .getbtn, main .link-row, main .icon-dl a, main .upload, main input, main select, main textarea"
-    + (name === "counter" ? ", main a, main summary" : "")
+    + (name === "counter" || name === "profiles" ? ", main a, main summary" : "")
   )].filter((el) => el.getClientRects().length);
   let nearest = Infinity, nearestName = "";
   for (const el of controls) {
@@ -238,6 +275,39 @@ function pageFacts() {
     heroLinks: [...new Set([...document.querySelectorAll('main a[href^="/counter/"]')].map((a) => a.getAttribute("href")))]
       .filter((h) => h !== "/counter/").length,
     privacyLink: !!document.querySelector('.side a[href="/privacy/"]'),
+    lede: (document.querySelector("main .lede") || {}).textContent || "",
+    typeLabels: (document.querySelector("main").textContent.match(/\b(Gun|Spirit|Hybrid) hero\b\.?/g) || []),
+    ver: (document.getElementById("ver") || {}).textContent || "",
+  };
+}
+
+// Run in the page with JavaScript off: what search engines get from one
+// main address.
+function staticFacts() {
+  const href = (sel) => { const el = document.querySelector(sel); return el ? el.getAttribute("href") : null; };
+  const pages = [...document.querySelectorAll("main > .page")].map((s) => ({
+    id: s.id, later: s.hasAttribute("data-later"), filled: s.children.length > 0, shown: s.getClientRects().length > 0,
+  }));
+  const main = document.querySelector("main");
+  return {
+    pages,
+    h1: [...document.querySelectorAll("h1")].map((h) => h.textContent.trim()),
+    ver: (document.getElementById("ver") || {}).textContent || "",
+    navCurrent: [...document.querySelectorAll(".navitem[aria-current]")].map((a) => a.textContent.trim()),
+    navLinks: [...document.querySelectorAll(".side .navitem")].map((a) => [a.tagName.toLowerCase(), a.getAttribute("href")]),
+    dlWin: href("#dlWin"), dlLin: href("#dlLin"), ghRepo: href("#ghRepo"),
+    releaseNotes: [...document.querySelectorAll(".verify[data-release]")].map((p) => [p.textContent.trim(), (p.querySelector("a") || {}).href || null]),
+    helpMail: href("#helpMail"), helpMailText: (document.getElementById("helpMail") || {}).textContent || null,
+    helpLink: href('.side .sidelinks a[data-jump="help"], .side .sidelinks a[href*="help"]'),
+    // "#" links outside the sign-in dialogs, and links with no address on show.
+    hashLinks: [...document.querySelectorAll('a[href="#"], a[href=""]')].filter((a) => !a.closest("dialog"))
+      .map((a) => a.id || a.textContent.trim().slice(0, 30)),
+    noHref: [...document.querySelectorAll("a:not([href])")].filter((a) => !a.closest("dialog") && a.getClientRects().length)
+      .map((a) => a.id || a.textContent.trim().slice(0, 30)),
+    adSlots: [...document.querySelectorAll(".ad-slot")].map((a) => a.dataset.ad),
+    adsShown: [...document.querySelectorAll(".ad-slot")].filter((a) => a.getClientRects().length).length,
+    soon: !!document.querySelector(".soon, #profilesSoon") || /opening soon/i.test(main ? main.textContent : ""),
+    boardShown: !!document.querySelector("#profilesBoard") && document.querySelector("#profilesBoard").getClientRects().length > 0,
   };
 }
 
@@ -320,6 +390,7 @@ server.listen(0, async () => {
             contentStartsAfterSidebar: Math.round(main.top - side.bottom),
             contentTop: Math.round(main.top + window.scrollY),
             tabs: [...document.querySelectorAll(".os-tab")].map((t) => t.textContent.trim()),
+            ver: (document.getElementById("ver") || {}).textContent || "",
             adsSetting: typeof SITE === "object" ? SITE.ads ?? null : null,
             adsPublisher: typeof SITE === "object" ? SITE.adsPublisher ?? null : null,
             analytics: !!window.__cfViews,
@@ -439,12 +510,79 @@ server.listen(0, async () => {
         };
       });
       await landing.screenshot({ path: path.join(out, `${engine}-${size}-privacy-address.png`) });
+      await landing.close();
+
+      // Switching pages: each page's content is fetched when it's opened (not
+      // when a link to it is only pointed at), then works like before.
+      const spa = (report[`${size}-switching`] = {});
+      const sw = await context.newPage();
+      const swErrors = [];
+      sw.on("pageerror", (e) => swErrors.push(String(e).split("\\n")[0]));
+      const lazy = () => [...document.querySelectorAll("main > .page[data-later]")].map((s) => s.id).sort();
+      try {
+        await sw.goto(`${url}?ads=off`);
+        await sw.waitForTimeout(400);
+        spa.startLater = await sw.evaluate(lazy);
+        await sw.hover('.navitem[data-nav="download"]');
+        await sw.waitForTimeout(400);
+        spa.afterPointing = await sw.evaluate(lazy);
+        await sw.click('.navitem[data-nav="download"]');
+        await sw.waitForSelector("#page-download.active .os-tab", { timeout: 5000 });
+        spa.download = await sw.evaluate(whereAmI);
+        await sw.click('.os-tab[data-os="win"]');
+        await sw.waitForTimeout(200);
+        spa.windows = await sw.evaluate(() => {
+          const a = document.getElementById("dlWin");
+          return { shown: !!a && a.getClientRects().length > 0, href: a && a.getAttribute("href"),
+            meta: (document.getElementById("dlWinMeta") || {}).textContent || "" };
+        });
+        await sw.click('.navitem[data-nav="profiles"]');
+        await sw.waitForSelector("#page-profiles.active", { timeout: 5000 });
+        await sw.waitForTimeout(300);
+        spa.profiles = { ...(await sw.evaluate(whereAmI)), ...(await sw.evaluate(() => ({
+          boardShown: !!document.getElementById("profilesBoard") && document.getElementById("profilesBoard").getClientRects().length > 0,
+          message: ((document.getElementById("boardMsg") || {}).textContent || "").trim(),
+          signIn: !!document.querySelector('#acctBar [data-open="dlgSignIn"]'),
+        }))) };
+        await sw.goBack();
+        await sw.waitForTimeout(300);
+        spa.back = await sw.evaluate(whereAmI);
+        await sw.click('.side .sidelinks a[data-jump="help"]');
+        await sw.waitForSelector("#page-about.active", { timeout: 5000 });
+        await sw.waitForTimeout(900);
+        spa.help = { ...(await sw.evaluate(whereAmI)), helpTop: await sw.evaluate(() => {
+          const h = document.getElementById("help");
+          return h ? Math.round(h.getBoundingClientRect().top) : null;
+        }), viewportHeight: await sw.evaluate(() => window.innerHeight) };
+        spa.endLater = await sw.evaluate(lazy);
+      } catch (e) {
+        spa.error = firstLine(e);
+      }
+      spa.pageErrors = swErrors;
+      await sw.close();
+      // Help & feedback from a counter page goes to /#help.
+      if (report["counterPages"]) {
+        const hp = await context.newPage();
+        try {
+          await hp.goto(`${url}${COUNTER}?ads=off`);
+          await hp.click('.side .sidelinks a[href="/#help"]');
+          await hp.waitForTimeout(800);
+          spa.helpFromCounter = { ...(await hp.evaluate(whereAmI)), helpTop: await hp.evaluate(() => {
+            const h = document.getElementById("help");
+            return h ? Math.round(h.getBoundingClientRect().top) : null;
+          }), viewportHeight: await hp.evaluate(() => window.innerHeight) };
+        } catch (e) {
+          spa.helpFromCounter = { error: firstLine(e) };
+        }
+        await hp.close();
+      }
       await context.close();
 
       // The ad positions, with ads switched on.
       const adsContext = await browser.newContext({ ...options, reducedMotion: "reduce" });
       await adsContext.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.abort());
       await fakeBeacon(adsContext);
+      await fakeLibrary(adsContext);
       const adsPage = await adsContext.newPage();
       const adsErrors = [];
       adsPage.on("pageerror", (e) => adsErrors.push(String(e)));
@@ -471,22 +609,45 @@ server.listen(0, async () => {
           await adsPage.screenshot({ path: path.join(out, `${engine}-${size}-ads-counter.png`), fullPage: true });
           await adsPage.goto(`${url}counter/?ads=on`);
           await adsPage.waitForTimeout(300);
-          on.counterIndex = await adsPage.evaluate(() => ({
-            visibleAds: [...document.querySelectorAll(".ad-slot, ins.adsbygoogle")].filter((el) => el.getClientRects().length).length,
-          }));
+          on.counterIndex = await adsPage.evaluate(measureAd, "counter");
+          await adsPage.screenshot({ path: path.join(out, `${engine}-${size}-ads-counter-index.png`), fullPage: true });
         }
         for (const tab of ["profiles", "privacy"]) {
           await openPage(adsPage, url, tab, "on");
           await adsPage.waitForTimeout(500);
           on[tab] = await adsPage.evaluate(() => ({
             visibleAds: [...document.querySelectorAll(".ad-slot, ins.adsbygoogle")].filter((el) => el.getClientRects().length).length,
+            cards: document.querySelectorAll("#grid .card").length,
           }));
         }
+        // SITE.profilesAds 'on' too: the Counter Profiles position, under the
+        // (fake) library cards. Privacy & rules still has none.
+        await openPage(adsPage, url, "profiles", "all");
+        await adsPage.waitForTimeout(800);
+        on.profilesCards = await adsPage.evaluate(() => document.querySelectorAll("#grid .card").length);
+        on.profilesAll = await adsPage.evaluate(measureAd, "profiles");
+        await adsPage.screenshot({ path: path.join(out, `${engine}-${size}-ads-profiles.png`), fullPage: true });
+        await openPage(adsPage, url, "privacy", "all");
+        await adsPage.waitForTimeout(500);
+        on.privacyAll = await adsPage.evaluate(() => ({
+          visibleAds: [...document.querySelectorAll(".ad-slot, ins.adsbygoogle")].filter((el) => el.getClientRects().length).length,
+        }));
       }
       on.pageErrors = adsErrors;
       report[`${size}-adsOn`] = on;
       await adsContext.close();
     }
+
+    // What search engines get: each main address with JavaScript off.
+    const still = (report["static"] = {});
+    const offContext = await browser.newContext({ viewport: { width: 1440, height: 900 }, javaScriptEnabled: false });
+    await offContext.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.abort());
+    const offPage = await offContext.newPage();
+    for (const tab of Object.keys(ADDRESS)) {
+      await offPage.goto(`${url}${ADDRESS[tab]}?ads=off`);
+      still[tab] = await offPage.evaluate(staticFacts);
+    }
+    await offContext.close();
 
     // The menu at every width, on every page with the sidebar.
     const sweep = (report["widths"] = {});
@@ -549,7 +710,14 @@ server.listen(0, async () => {
         : [],
       adsTxt: read("ads.txt"),
       ogImage: fs.existsSync(path.join(root, "og-image.png")),
+      settings: settingsOf(read("index.html") || ""),
+      version: read("app/version.json") ? JSON.parse(read("app/version.json")).version : null,
     };
+    // The feedback address never appears as plain text in a link (it's
+    // written with HTML character codes), on any main address.
+    const mail = report["siteFiles"].settings.site.supportEmail || "";
+    report["siteFiles"].plainMailLinks = Object.entries(ADDRESS)
+      .filter(([, a]) => mail && (read(`${a}index.html`) || "").includes(`href="mailto:${mail}"`)).map(([t]) => t);
   } finally {
     fs.writeFileSync(path.join(out, `${engine}-report.json`), JSON.stringify(report, null, 1));
     await browser.close();

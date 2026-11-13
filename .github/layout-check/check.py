@@ -13,8 +13,26 @@
 - Ads on (made-up ad unit IDs): About and Download each show one ad box, and
   Download only once a system is picked. The box keeps 250 px for the ad and
   doesn't change size when the ad loads, isn't in a form, and is at least
-  150 px from any button or download link. Counter Profiles and Privacy show
-  no ads. No script errors either way.
+  150 px from any button or download link. Counter Profiles (with fake
+  library cards) shows no ad while SITE.profilesAds is 'off'; with it 'on'
+  its box follows the same rules, at least 150 px from any button or link,
+  the cards' Download and Report buttons included. Privacy never shows an
+  ad. No script errors either way.
+- What search engines get (JavaScript off): each main address has only its
+  own page's content in the HTML, and shows it, with one H1; the sidebar
+  shows the latest version (from the release) and marks that page; the
+  menu items are links; the Windows and Linux buttons link straight to the
+  latest release's files, GitHub and the release notes are real links,
+  Help & feedback goes to /#help, and the feedback email is a mailto link
+  written with HTML character codes (never plain); no "#" links outside the
+  sign-in dialogs. Counter Profiles has no "opening soon" note and shows the
+  library. The ad positions: About, Download, Counter Profiles, none on
+  Privacy, all hidden.
+- Switching pages with JavaScript on: pointing at a menu item doesn't add
+  that page to the HTML, clicking it does, and then it works: Download's
+  Windows button links to the release, Counter Profiles shows the library
+  with Sign in, Back goes back, and Help & feedback (from any page, and
+  /#help from a counter page) scrolls to the help section on About.
 - Every page has its own address (/, /download/, /profiles/, /privacy/) and
   its own title, opening that address directly shows that page, and so does
   reloading it. Old links (/#download and so on) land on the new address.
@@ -38,10 +56,11 @@
   later; typebox.cjs on a test copy where Abrams has a spirit build): with
   JavaScript off the default build shows and the box doesn't, every build is
   in the HTML; with it on the box shows under the web app button, starts at
-  Gun, is at least 44 px tall, switches the items without moving, Hybrid shows the default with "(No hybrid build for Abrams
+  "Any type" (the page never names the hero's type), is at least 44 px tall, switches the items without moving, Hybrid shows the default with "(No hybrid build for Abrams
   yet, showing the default.)", and a hero without builds has no box.
-- If the pull request changes the sidebar's menu or how it is drawn, the About
-  comparison covers only the page content (right of the sidebar).
+- If the pull request changes the sidebar's menu or how it is drawn, or the
+  version it shows, the About comparison covers only the page content (right
+  of the sidebar).
 - Counter pages (when the site has them, made from the latest release):
   /counter/abrams/ at phone and PC size has the same layout as the other
   pages, one H1 "How to counter Abrams in Deadlock", its own title,
@@ -53,8 +72,10 @@
   above (ads off: nothing; ads on: one 250 px box, at least 150 px from any
   button, link or fold-out). Browse all heroes and /counter/ are one list of
   every hero, A to Z, with no type headings; /counter/ keeps the short line
-  under each hero name. /counter/ shows no ads. Unknown addresses get 404.html with links to Home, the counters and
-  Download.
+  under each hero name. No hero page says "Gun hero." (or Spirit, Hybrid):
+  a hero's type depends on the build. /counter/ has one ad position with the
+  same rules (ad unit SITE.adSlots.counter, like the hero pages). Unknown
+  addresses get 404.html with links to Home, the counters and Download.
 - sitemap.xml lists every page, each counter page included, with a date;
   robots.txt points to it; ads.txt is still there.
 - /app/?enemy=abrams opens the web version with Abrams picked (checked in
@@ -63,6 +84,7 @@
 """
 
 import json
+import re
 import sys
 
 MIN_GAP = 150  # px between an ad and the nearest button or download link
@@ -188,17 +210,21 @@ def check_typebox(engine, path):
         problems.append(f"{engine} type box: script error: {err}")
     if not r.get("inHtml"):
         problems.append(f"{engine} type box: the spirit build isn't in the page's HTML")
-    default_first = "Extra Regen"
     for size in ("phone", "pc"):
         v = r.get(size) or {}
         where = f"{engine} {size} type box"
+        # The default build's first item, as the page shows it without
+        # JavaScript (it changes with the profile in each release).
+        default_first = (v.get("noScript", {}).get("items") or [None])[0]
+        if not default_first or default_first.startswith("Spirit test item"):
+            problems.append(f"{where}: no default build without JavaScript ({v.get('noScript')})")
         print(f"{where}: " + json.dumps({k: (x.get("value"), x.get("boxTop"), (x.get("items") or [None])[0], x.get("note"))
                                          for k, x in v.items() if isinstance(x, dict) and "items" in x}))
         off = v.get("noScript", {})
         if off.get("boxShown") or (off.get("items") or [None])[0] != default_first or off.get("note"):
             problems.append(f"{where}: with JavaScript off, the default build should show without the box ({off})")
         tops = set()
-        for state, value, first, note in (("start", "gun", default_first, ""), ("spirit", "spirit", "Spirit test item (lane)", ""),
+        for state, value, first, note in (("start", "", default_first, ""), ("spirit", "spirit", "Spirit test item (lane)", ""),
                                           ("hybrid", "hybrid", default_first, "(No hybrid build for Abrams yet, showing the default.)"),
                                           ("any", "", default_first, ""), ("gun", "gun", default_first, "")):
             x = v.get(state, {})
@@ -217,6 +243,94 @@ def check_typebox(engine, path):
             problems.append(f"{where}: a hero without builds has a type box ({v.get('otherHero')})")
         if v.get("adToBox") is not None and v["adToBox"] < MIN_GAP:
             problems.append(f"{where}: the ad is {v['adToBox']} px from the type box (needs {MIN_GAP})")
+
+
+H1 = {"about": "Counter the enemy", "download": "Download Counterlock", "profiles": "Counter Profiles", "privacy": "Privacy & rules"}
+AD_SLOTS = {"about": ["about"], "download": ["download"], "profiles": ["profiles"], "privacy": []}
+NAV = {"about": "About", "download": "Download", "profiles": "Counter Profiles"}
+
+
+def check_static(engine, report):
+    """What search engines get from each main address (JavaScript off)."""
+    files = report.get("siteFiles", {})
+    release, site = files.get("settings", {}).get("release", {}), files.get("settings", {}).get("site", {})
+    repo = release.get("github", "")
+    releases = f"https://github.com/{repo}/releases"
+    mail = site.get("supportEmail", "")
+    still = report.get("static") or {}
+    if not still:
+        problems.append(f"{engine}: no JavaScript-off check in the report")
+    for tab, v in still.items():
+        where = f"{engine} {PATHS[tab]} without JavaScript"
+        print(f"{where}: " + json.dumps({k: v.get(k) for k in ("pages", "h1", "ver", "navCurrent", "adSlots", "hashLinks", "noHref")}))
+        mine = [p for p in v.get("pages", []) if p["id"] == f"page-{tab}"]
+        others = [p for p in v.get("pages", []) if p["id"] != f"page-{tab}"]
+        if len(v.get("pages", [])) != 4 or not mine or mine[0]["later"] or not mine[0]["filled"] or not mine[0]["shown"]:
+            problems.append(f"{where}: its own page isn't in the HTML on show ({v.get('pages')})")
+        if any(p["filled"] or not p["later"] or p["shown"] for p in others):
+            problems.append(f"{where}: other pages' content is in the HTML ({others})")
+        if v.get("h1") != [H1[tab]]:
+            problems.append(f"{where}: H1 is {v.get('h1')}, expected [{H1[tab]!r}]")
+        if files.get("version") and v.get("ver") != f"v{files['version']}":
+            problems.append(f"{where}: the sidebar says {v.get('ver')!r}, the latest release is v{files['version']}")
+        if v.get("navCurrent") != ([NAV[tab]] if tab in NAV else []):
+            problems.append(f"{where}: the sidebar marks {v.get('navCurrent')} as the open page")
+        if [n[0] for n in v.get("navLinks", [])] != ["a"] * 4 or [n[1] for n in v.get("navLinks", [])] != ["/", "/download/", "/profiles/", "/counter/"]:
+            problems.append(f"{where}: the menu items aren't links to the pages ({v.get('navLinks')})")
+        if v.get("helpLink") != "/#help":
+            problems.append(f"{where}: Help & feedback links to {v.get('helpLink')!r} instead of '/#help'")
+        if v.get("hashLinks") or v.get("noHref"):
+            problems.append(f"{where}: links without a real address: {v.get('hashLinks')} {v.get('noHref')}")
+        if v.get("adSlots") != AD_SLOTS[tab] or v.get("adsShown"):
+            problems.append(f"{where}: ad positions {v.get('adSlots')} ({v.get('adsShown')} shown), expected {AD_SLOTS[tab]} hidden")
+        if tab == "download":
+            want = {"dlWin": f"{releases}/latest/download/{release.get('windowsFile')}",
+                    "dlLin": f"{releases}/latest/download/{release.get('linuxFile')}"}
+            for key, url in want.items():
+                if v.get(key) != url:
+                    problems.append(f"{where}: the {key} button links to {v.get(key)!r} instead of {url!r}")
+            notes = v.get("releaseNotes") or []
+            if len(notes) != 2 or any(n[1] != f"{releases}/latest" or (files.get("version") and f"Version {files['version']}." not in n[0])
+                                      for n in notes):
+                problems.append(f"{where}: release notes lines are {notes}")
+        if tab == "about":
+            if v.get("ghRepo") != f"https://github.com/{repo}":
+                problems.append(f"{where}: the GitHub link is {v.get('ghRepo')!r}")
+            if v.get("helpMail") != f"mailto:{mail}" or v.get("helpMailText") != mail:
+                problems.append(f"{where}: the feedback email link is {v.get('helpMail')!r} ({v.get('helpMailText')!r})")
+        if tab == "profiles" and (v.get("soon") or not v.get("boardShown")):
+            problems.append(f"{where}: an 'opening soon' note is in the page, or the library isn't shown (soon {v.get('soon')}, library {v.get('boardShown')})")
+    if files.get("plainMailLinks"):
+        problems.append(f"{engine}: the feedback email is a plain mailto link on {files['plainMailLinks']} (spam bots read those)")
+
+
+def check_switching(engine, size, s):
+    """Switching pages loads each page's content when it's opened."""
+    where = f"{engine} {size} switching pages"
+    print(f"{where}: {json.dumps(s)}")
+    if s.get("error") or s.get("pageErrors"):
+        problems.append(f"{where}: {s.get('error')} {s.get('pageErrors')}")
+        return
+    if s.get("startLater") != ["page-download", "page-privacy", "page-profiles"] or s.get("afterPointing") != s.get("startLater"):
+        problems.append(f"{where}: other pages' content was added before they were opened ({s.get('startLater')} -> {s.get('afterPointing')})")
+    if (s.get("download") or {}).get("shown") != "page-download" or (s.get("download") or {}).get("path") != "/download/":
+        problems.append(f"{where}: the Download item didn't open Download ({s.get('download')})")
+    win = s.get("windows") or {}
+    if not win.get("shown") or not str(win.get("href", "")).startswith("https://github.com/") or "Counterlock.exe" not in win.get("meta", ""):
+        problems.append(f"{where}: the Windows download doesn't work after switching ({win})")
+    prof = s.get("profiles") or {}
+    if prof.get("shown") != "page-profiles" or not prof.get("boardShown") or not prof.get("signIn"):
+        problems.append(f"{where}: Counter Profiles doesn't show the library with Sign in after switching ({prof})")
+    if (s.get("back") or {}).get("shown") != "page-download":
+        problems.append(f"{where}: Back didn't return to Download ({s.get('back')})")
+    for key in ("help", "helpFromCounter"):
+        h = s.get(key)
+        if key == "helpFromCounter" and h is None:
+            continue
+        h = h or {}
+        if h.get("shown") != "page-about" or h.get("path") != "/" or h.get("helpTop") is None \
+                or not 0 <= h["helpTop"] < h.get("viewportHeight", 0):
+            problems.append(f"{where}: Help & feedback ({key}) doesn't show the help section on About ({h})")
 
 
 def check_hero_list(engine, size, where, view, heroes, cards):
@@ -275,6 +389,11 @@ def check_counter_pages(engine, report):
             problems.append(f"{where}: the page still has a quick answer box")
         if not v.get("downloadLink") or not v.get("privacyLink"):
             problems.append(f"{where}: the Download or Privacy & rules link is missing")
+        if v.get("typeLabels") or re.search(r"\b(gun|spirit|hybrid)\b", v.get("lede", ""), re.I):
+            problems.append(f"{where}: the page names the hero's type ({v.get('typeLabels')}, intro {v.get('lede')!r})")
+        want_ver = f"v{report['siteFiles'].get('version')}"
+        if report["siteFiles"].get("version") and v.get("ver") != want_ver:
+            problems.append(f"{where}: the sidebar says {v.get('ver')!r} instead of {want_ver!r}")
         if v.get("navCurrent") != ["Hero Counters"]:
             problems.append(f"{where}: the sidebar marks {v.get('navCurrent')} as the open page")
         heroes = len(report["siteFiles"]["counterFolders"])
@@ -299,8 +418,7 @@ def check_counter_pages(engine, report):
         on = report.get(f"{size}-adsOn", {})
         if on.get("switchedOn"):
             check_ad_box(engine, size, "counter", on.get("counter", {}))
-            if on.get("counterIndex", {}).get("visibleAds"):
-                problems.append(f"{engine} {size} /counter/: shows an ad")
+            check_ad_box(engine, size, "counter list", on.get("counterIndex", {}))
 
     files = report["siteFiles"]
     urls = dict(files.get("sitemap") or [])
@@ -408,7 +526,13 @@ for report_file in sorted(after.glob("*-report.json")):
             problems.append(f"{engine} {size} download: the ad shows before a system is picked")
         for tab in ("profiles", "privacy"):
             if on.get(tab, {}).get("visibleAds"):
-                problems.append(f"{engine} {size} {tab}: shows an ad")
+                problems.append(f"{engine} {size} {tab}: shows an ad (SITE.profilesAds is still 'off')")
+        if not on.get("profiles", {}).get("cards") or not on.get("profilesCards"):
+            problems.append(f"{engine} {size} profiles: the fake library cards didn't show ({on.get('profiles')}, {on.get('profilesCards')})")
+        check_ad_box(engine, size, "profiles (SITE.profilesAds on)", on.get("profilesAll", {}))
+        if on.get("privacyAll", {}).get("visibleAds"):
+            problems.append(f"{engine} {size} privacy: shows an ad with every ad setting on")
+        check_switching(engine, size, report.get(f"{size}-switching", {}))
     # A pull request that replaces the app screenshot changes that image on
     # purpose, so then compare with it covered: the rest must still match.
     old_report = json.loads((before / report_file.name).read_text())
@@ -422,7 +546,10 @@ for report_file in sorted(after.glob("*-report.json")):
     old_nav, new_nav = old_report["pc-about"].get("navLabels"), report["pc-about"].get("navLabels")
     old_drawn = [(n["label"], n["lines"], n["height"]) for n in old_report["pc-about"].get("nav") or []]
     new_drawn = [(n["label"], n["lines"], n["height"]) for n in report["pc-about"].get("nav") or []]
-    if old_nav != new_nav or old_drawn != new_drawn:
+    old_ver, new_ver = old_report["pc-about"].get("ver"), report["pc-about"].get("ver")
+    if old_ver != new_ver:
+        note += f" (sidebar version {old_ver or 'not noted'} -> {new_ver})"
+    if old_nav != new_nav or old_drawn != new_drawn or old_ver != new_ver:
         left = report["pc-about"]["sideRight"] * new.width // 1440
         old, new = old.crop((left, 0, old.width, old.height)), new.crop((left, 0, new.width, new.height))
         note += f" (sidebar menu changed from {old_drawn or old_nav} to {new_drawn or new_nav}, compared the content only)"
@@ -434,6 +561,7 @@ for report_file in sorted(after.glob("*-report.json")):
 for report_file in sorted(after.glob("*-report.json")):
     engine = report_file.name.split("-")[0]
     report = json.loads(report_file.read_text())
+    check_static(engine, report)
     check_counter_pages(engine, report)
     check_widths(engine, report)
     check_typebox(engine, after / f"{engine}-typebox.json")

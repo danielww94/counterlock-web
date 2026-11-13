@@ -4,7 +4,7 @@
 // <site folder> is a site made from builds-zip.py's test zip, where Abrams has
 // a spirit build. At phone and PC size it opens /counter/abrams/ with
 // JavaScript off (the default build shows, the box doesn't, every build is in
-// the HTML) and on (the box starts at Gun, under the web app button, and
+// the HTML) and on (the box starts at "Any type", under the web app button, and
 // switches the items without moving; Hybrid has no build, so the default
 // shows with a note).
 // It also notes that a hero without builds has no box, and how far the ad
